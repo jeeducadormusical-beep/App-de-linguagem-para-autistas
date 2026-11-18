@@ -4,7 +4,7 @@ extends Node
 ## Catalogo modular (GDD 4.1). Para adicionar um jogo novo: crie scenes/<id>.tscn com um
 ## script que estende res://scripts/base_jogo.gd e acrescente uma linha aqui (ficha: GDD sec. 18).
 const CATALOGO := [
-	{"id": "torre", "nome": "Torre de Blocos", "icone": "🧱", "cor": "FFC9A8", "requisitos": []},
+	{"id": "torre", "nome": "Torre do Castelo", "icone": "🏰", "cor": "FFC9A8", "requisitos": ["microfone"]},
 	{"id": "bolhas", "nome": "Bolhas de Sabão", "icone": "🧼", "cor": "BFDCF7", "requisitos": ["microfone"]},
 ]
 

@@ -102,6 +102,67 @@ func _process(delta: float) -> void:
 		_abrir_convite()
 
 
+## Imagem de interesse grande, num circulo branco, centralizada em `centro` (GDD 11.2).
+func mostrar_revelacao(item: Dictionary, centro: Vector2) -> Control:
+	var r := PanelContainer.new()
+	r.add_theme_stylebox_override("panel", UI.caixa(UI.CORES.superficie, 200, 12))
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.add_child(UI.imagem_item(item, 300))
+	area.add_child(r)
+	r.size = Vector2(380, 380)
+	r.position = centro - r.size / 2.0
+	r.pivot_offset = r.size / 2.0
+	r.scale = Vector2(0.4, 0.4)
+	r.modulate.a = 0.0
+	var t := create_tween().set_parallel()
+	t.tween_property(r, "scale", Vector2.ONE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(r, "modulate:a", 1.0, 0.3)
+	return r
+
+
+## Some com a revelacao devagar.
+func esconder_revelacao(r: Control) -> void:
+	if r == null or not is_instance_valid(r):
+		return
+	var t := create_tween().set_parallel()
+	t.tween_property(r, "modulate:a", 0.0, 0.6)
+	t.tween_property(r, "scale", Vector2(0.8, 0.8), 0.6)
+	t.chain().tween_callback(r.queue_free)
+
+
+## Espera o ciclo de comunicacao atual terminar (minimo `minimo` segundos).
+func esperar_ciclo(minimo := 3.0) -> void:
+	await get_tree().create_timer(minimo).timeout
+	while is_inside_tree() and Fala.ocupado() and Fala.estado != Fala.CONVIDANDO:
+		await get_tree().create_timer(0.3).timeout
+
+
+## Mostra de onde sai o sopro (microfone), so na primeira vez do dia (GDD 11.4).
+func mostrar_guia_microfone() -> void:
+	if not Microfone.ativo:
+		return
+	var hoje := Time.get_date_string_from_system()
+	if Perfil.config.orientacao_sopro_dia == hoje:
+		return
+	Perfil.definir("orientacao_sopro_dia", hoje)
+	var h := get_viewport_rect().size.y
+	var guia := VBoxContainer.new()
+	guia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	guia.add_child(UI.rotulo("📱", 96))
+	var seta := UI.rotulo("⬇️ 🎤", 56)
+	guia.add_child(seta)
+	guia.position = Vector2(24, h - 470)
+	guia.size = Vector2(200, 240)
+	area.add_child(guia)
+	var t := create_tween().set_loops(4)
+	t.tween_property(seta, "modulate:a", 0.3, 0.7)
+	t.tween_property(seta, "modulate:a", 1.0, 0.7)
+	var fim := create_tween()
+	fim.tween_interval(6.0)
+	fim.tween_property(guia, "modulate:a", 0.0, 0.8)
+	fim.tween_callback(guia.queue_free)
+
+
 ## Os jogos chamam isto a cada toque da crianca.
 func registrar_toque() -> void:
 	tempo_sem_toque = 0.0

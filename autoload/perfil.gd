@@ -26,7 +26,7 @@ const PADRAO := {
 	"sensibilidade": 1,        # 0 baixa, 1 media, 2 alta
 	"detectar_voz": false,
 	"torre_cai": true,
-	"torre_blocos": 0,         # 0 = cores, 1 = figuras dos temas
+	"forca_derrubar": 1,       # sopro para derrubar a torre: 0 fraco, 1 medio, 2 forte
 	"jogos_visiveis": {"torre": true, "bolhas": true},
 	"abrir_ultimo": false,
 	"ultimo_jogo": "",

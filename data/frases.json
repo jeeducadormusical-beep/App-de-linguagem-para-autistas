@@ -8,16 +8,14 @@
 		"tchau": {"niveis": ["Tchau!", "Tchau, {nome}!", "Tchau, {nome}! Até logo!"]}
 	},
 	"torre": {
-		"inicio": {"niveis": ["Vamos?", "{nome}, vamos?", "{nome}, vamos fazer uma torre?"]},
-		"inicio_sem_nome": {"niveis": ["Vamos?", "Vamos?", "Vamos fazer uma torre?"]},
-		"colocar": {"niveis": ["Em cima", "Coloca em cima", "Coloca em cima da torre"]},
-		"cor": {"niveis": ["{cor}", "{cor}!", "Esse é {cor}!"]},
-		"item": {"niveis": ["{item}", "{artigo} {item}", "Olha {artigo} {item}!"]},
-		"alta": {"niveis": ["Alta!", "Ficou alta!", "Ficou alta, a torre!"]},
-		"bamba": {"niveis": ["Bamba!", "Está bamba!", "A torre está bamba!"]},
-		"caiu": {"niveis": ["Caiu!", "Caiu!", "Caiu tudo!"]},
+		"inicio": {"niveis": ["Sopra!", "{nome}, sopra!", "{nome}, vamos soprar a torre?"]},
+		"inicio_sem_nome": {"niveis": ["Sopra!", "Sopra a torre!", "Vamos soprar a torre?"]},
+		"bamba": {"niveis": ["Balança!", "Está bamba!", "A torre está balançando!"]},
+		"mais_forte": {"niveis": ["Mais!", "Mais forte!", "Sopra mais forte!"]},
+		"caiu": {"niveis": ["Caiu!", "Caiu!", "Caiu a torre!"]},
+		"revelar": {"niveis": ["{item}", "{artigo} {item}", "Olha {artigo} {item}!"]},
 		"de_novo": {"niveis": ["De novo?", "De novo?", "Vamos de novo?"]},
-		"convite_inativo": {"niveis": ["Bloco?", "Mais um bloco?", "Vamos colocar mais um?"]}
+		"convite_inativo": {"niveis": ["Sopra!", "Sopra a torre!", "Vamos soprar?"]}
 	},
 	"bolhas": {
 		"convite": {"niveis": ["Soprar?", "Vamos soprar?", "Vamos soprar bolhas?"]},

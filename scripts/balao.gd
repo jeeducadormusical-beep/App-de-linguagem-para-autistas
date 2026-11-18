@@ -5,6 +5,7 @@ extends PanelContainer
 
 var _texto: RichTextLabel
 var _imagem_box: Control
+var _tween: Tween
 
 
 func _ready() -> void:
@@ -62,11 +63,18 @@ func _ao_mudar(estado: int, texto: String, item: Dictionary) -> void:
 	if not mostrar_texto and item.is_empty():
 		_sumir()
 		return
-	var t := create_tween()
-	t.tween_property(self, "modulate:a", 1.0, 0.25)
+	_novo_tween().tween_property(self, "modulate:a", 1.0, 0.25)
 
 
 func _sumir() -> void:
-	var t := create_tween()
+	var t := _novo_tween()
 	t.tween_interval(0.5)
 	t.tween_property(self, "modulate:a", 0.0, 0.6)
+
+
+## Cancela a animacao anterior, para um "sumir" antigo nao esconder uma fala nova.
+func _novo_tween() -> Tween:
+	if _tween and _tween.is_valid():
+		_tween.kill()
+	_tween = create_tween()
+	return _tween

@@ -45,7 +45,6 @@ var _acumulado := 0.0
 var _ultimo_surgem := -100.0
 var _pops_vazios := 0
 var _convidou_inativo := false
-var _guia: Control
 var _relogio := 0.0
 
 
@@ -71,37 +70,12 @@ func _montar(a: Control) -> void:
 
 	Microfone.sopro.connect(_ao_soprar)
 	if Microfone.ligar():
-		_mostrar_guia_microfone()
+		mostrar_guia_microfone()
 	_recomecar()
 
 
 func _recomecar() -> void:
 	Fala.ciclo("bolhas", "convite")
-
-
-## Mostra de onde sai o sopro, so na primeira vez do dia (GDD 11.4).
-func _mostrar_guia_microfone() -> void:
-	var hoje := Time.get_date_string_from_system()
-	if Perfil.config.orientacao_sopro_dia == hoje:
-		return
-	Perfil.definir("orientacao_sopro_dia", hoje)
-	var w := get_viewport_rect().size.x
-	var h := get_viewport_rect().size.y
-	_guia = VBoxContainer.new()
-	_guia.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_guia.add_child(UI.rotulo("📱", 120))
-	var seta := UI.rotulo("⬇️ 🎤", 64)
-	_guia.add_child(seta)
-	_guia.position = Vector2(w / 2.0 - 110, h - 520)
-	_guia.size = Vector2(220, 260)
-	area.add_child(_guia)
-	var t := create_tween().set_loops(4)
-	t.tween_property(seta, "modulate:a", 0.3, 0.7)
-	t.tween_property(seta, "modulate:a", 1.0, 0.7)
-	var fim := create_tween()
-	fim.tween_interval(6.0)
-	fim.tween_property(_guia, "modulate:a", 0.0, 0.8)
-	fim.tween_callback(_guia.queue_free)
 
 
 func _ao_soprar(forca: float) -> void:
@@ -192,35 +166,13 @@ func _estourar(b: Bolha, revelar: bool) -> void:
 
 ## A imagem aparece grande no centro (GDD 11.2), o personagem fala o nome.
 func _revelar(item: Dictionary) -> void:
-	var w := get_viewport_rect().size.x
-	var h := get_viewport_rect().size.y
-	revelacao = PanelContainer.new()
-	revelacao.add_theme_stylebox_override("panel", UI.caixa(UI.CORES.superficie, 200, 12))
-	revelacao.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var img := UI.imagem_item(item, 300)
-	revelacao.add_child(img)
-	area.add_child(revelacao)
-	revelacao.size = Vector2(380, 380)
-	revelacao.position = Vector2(w / 2.0 - 190, h / 2.0 - 260)
-	revelacao.pivot_offset = Vector2(190, 190)
-	revelacao.scale = Vector2(0.6, 0.6)
-	create_tween().tween_property(revelacao, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var tela := get_viewport_rect().size
+	revelacao = mostrar_revelacao(item, Vector2(tela.x / 2.0, tela.y / 2.0 - 70))
 	Fala.ciclo("bolhas", "revelar", {"item": item.texto, "artigo": item.get("artigo", "")}, item)
-	_esperar_fim_revelacao()
-
-
-func _esperar_fim_revelacao() -> void:
-	# espera o ciclo (modelo + pausa + aceitacao) terminar; minimo de 3 s na tela
-	await get_tree().create_timer(3.0).timeout
-	while is_inside_tree() and Fala.ocupado() and Fala.estado != Fala.CONVIDANDO:
-		await get_tree().create_timer(0.3).timeout
+	await esperar_ciclo(3.0)
 	if not is_inside_tree() or revelacao == null:
 		return
-	var r := revelacao
+	esconder_revelacao(revelacao)
 	revelacao = null
-	var t := create_tween().set_parallel()
-	t.tween_property(r, "modulate:a", 0.0, 0.6)
-	t.tween_property(r, "scale", Vector2(0.8, 0.8), 0.6)
-	t.chain().tween_callback(r.queue_free)
 	if Fala.estado != Fala.CONVIDANDO:
 		Fala.dizer("bolhas", "fim_revelar")

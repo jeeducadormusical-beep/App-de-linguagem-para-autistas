@@ -94,7 +94,7 @@ func _secao_fala(c: VBoxContainer) -> void:
 	v.add_child(_rot("Nível de apoio"))
 	var exemplo := _nota("")
 	var mostrar_exemplo := func():
-		exemplo.text = "Exemplo: \"%s\"" % Fala.frase("torre", "alta")
+		exemplo.text = "Exemplo: \"%s\"" % Fala.frase("torre", "revelar", {"item": "banana", "artigo": "a"})
 	v.add_child(UI.seletor(["Só a palavra", "Com artigo", "Frase curta"], Perfil.config.nivel_apoio, func(i):
 		Perfil.definir("nivel_apoio", i)
 		mostrar_exemplo.call()))
@@ -106,7 +106,7 @@ func _secao_fala(c: VBoxContainer) -> void:
 	_toggle(v, "Mostrar texto na tela", "texto_ligado")
 	_toggle(v, "Texto grande", "texto_grande")
 	var testar := UI.botao("🔊 Ouvir a voz", UI.CORES.superficie, 26, 80, UI.CORES.texto)
-	testar.pressed.connect(func(): Fala.falar_texto(Fala.frase("torre", "alta")))
+	testar.pressed.connect(func(): Fala.falar_texto(Fala.frase("torre", "revelar", {"item": "banana", "artigo": "a"})))
 	v.add_child(testar)
 
 
@@ -141,10 +141,11 @@ func _secao_jogos(c: VBoxContainer) -> void:
 	v.add_child(_rot("Convite suave para parar depois de"))
 	var minutos := [3, 6, 10]
 	v.add_child(UI.seletor(["3 min", "6 min", "10 min"], maxi(0, minutos.find(int(Perfil.config.minutos_sessao))), func(i): Perfil.definir("minutos_sessao", minutos[i])))
-	v.add_child(UI.titulo_secao("🧱 Torre de Blocos"))
-	_toggle(v, "A torre pode cair", "torre_cai")
-	v.add_child(_rot("Blocos"))
-	v.add_child(UI.seletor(["Cores", "Figuras dos temas"], Perfil.config.torre_blocos, func(i): Perfil.definir("torre_blocos", i)))
+	v.add_child(UI.titulo_secao("🏰 Torre do Castelo"))
+	_toggle(v, "A torre pode cair (se desligado, ela só balança)", "torre_cai")
+	v.add_child(_rot("Força do sopro para derrubar a torre"))
+	v.add_child(UI.seletor(["Fraco", "Médio", "Forte"], Perfil.config.forca_derrubar, func(i): Perfil.definir("forca_derrubar", i)))
+	v.add_child(_nota("Sem microfone, a criança segura o dedo na torre: toque curto balança, segurar derruba."))
 
 
 func _secao_microfone(c: VBoxContainer) -> void:
@@ -238,7 +239,7 @@ func _process(_d: float) -> void:
 	if Perfil.config.microfone and not Microfone.ativo and Microfone.tem_permissao():
 		Microfone.ligar()
 	if not Perfil.config.microfone:
-		_status_mic.text = "Desligado: as Bolhas funcionam por toque."
+		_status_mic.text = "Desligado: os jogos funcionam por toque."
 	elif not Microfone.tem_permissao():
 		_status_mic.text = "Aguardando permissão do microfone. Sem ela, o jogo funciona por toque."
 	else:

@@ -128,8 +128,8 @@ func _agendar(ev: Dictionary) -> void:
 func _iniciar(ev: Dictionary) -> void:
 	_ciclo = ev
 	_ciclo["repetiu"] = false
-	var item_txt: String = ev.item.get("texto", "")
-	Perfil.registrar_palavra(item_txt if item_txt != "" else ev.texto)
+	# o diario guarda as palavras de interesse que apareceram (GDD 14.1)
+	Perfil.registrar_palavra(ev.item.get("texto", ""))
 	_modelo()
 
 

@@ -1,7 +1,7 @@
 # Fala Brincando (título provisório)
 
 Protótipo em **Godot 4.3** do *GDD – App de Jogos para Comunicação e Fala (crianças autistas)*.
-Hub com dois jogos (**Torre de Blocos** e **Bolhas de Sabão**), um personagem amigo e o ciclo
+Hub com dois jogos (**Torre do Castelo** e **Bolhas de Sabão**), um personagem amigo e o ciclo
 **modelo → pausa → aceitação**: sem erro, sem pontuação, sem estrelas e sem "tente de novo".
 
 Tudo foi feito com **código simples**: o personagem, os blocos, as bolhas e os sons são
@@ -28,7 +28,7 @@ microfone (para o sopro) e com a de vibração. Você só precisa configurar sua
 |---|---|---|
 | Primeira abertura (`inicio`) | Responsável | Aviso ("não é terapia nem diagnóstico"), consentimento, apelido, prévia da voz, temas e escolha entre sopro e toque |
 | Hub (`hub`) | Criança | Ícones grandes dos jogos, sempre na mesma posição; o personagem cumprimenta |
-| Torre de Blocos (`torre`) | Criança | Tocar **ou** arrastar blocos; a torre balança, cai devagar e se reconstrói sozinha |
+| Torre do Castelo (`torre`) | Criança | A torre já começa montada. **Sopro fraco** só balança; **sopro forte** derruba a torre e aparece um item dos temas escolhidos pelo responsável, que o personagem nomeia. Depois a torre se remonta sozinha. Sem microfone: segurar o dedo na torre (toque curto balança, segurar derruba) |
 | Bolhas de Sabão (`bolhas`) | Criança | Soprar no microfone **ou** segurar a varinha ✨; tocar na bolha revela uma imagem |
 | Área dos responsáveis (`responsaveis`) | Responsável | Perfil, fala, conforto sensorial, jogos, microfone com teste ao vivo, diário e privacidade |
 
@@ -105,7 +105,7 @@ autoload/
   jogo.gd        catálogo modular de jogos e navegação
 scripts/
   base_jogo.gd   "contrato" de todo jogo: casa, balão, personagem, 👍, fim suave, diário
-  torre.gd       Jogo 1: Torre de Blocos
+  torre.gd       Jogo 1: Torre do Castelo (soprar para derrubar)
   bolhas.gd      Jogo 2: Bolhas de Sabão
   personagem.gd  personagem desenhado por código (sem boca animada, só poses)
   balao.gd       balão de fala (sempre no mesmo lugar, com palavra-chave destacada)
@@ -127,8 +127,8 @@ data/
 a voz, temas, nível de apoio, tempo de pausa, repetição única do modelo e texto ligado/grande; voz
 única por síntese pt-BR com texto sempre junto (e som neutro quando o aparelho não tem voz);
 ciclo modelo → pausa → aceitação igual para qualquer resposta; personagem com 5 estados;
-Torre (tocar e arrastar, encaixe assistido, balanço, queda lenta pré-programada, opção "nunca cai",
-blocos de cores ou de figuras, convite após 20 s parado); Bolhas (sopro com sensibilidade em 3 níveis,
+Torre do Castelo (sopro fraco balança, sopro forte derruba e revela um item de interesse, força
+para derrubar ajustável em fraco/médio/forte, alternativa por toque, opção "nunca cai", convite após 20 s parado); Bolhas (sopro com sensibilidade em 3 níveis,
 calibração do ruído, teste ao vivo, varinha por toque, revelação de imagem, bolhas mais lentas quando
 há muitas, orientação do microfone uma vez por dia); conforto sensorial (volume, efeitos, reduzir
 movimento, tema calmo, vibração); detecção opcional de voz (só presença de som); diário com palavras
