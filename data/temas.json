@@ -17,12 +17,23 @@
 			"id": "animais", "nome": "Animais", "emoji": "🐶", "padrao": true,
 			"itens": [
 				{"id": "cachorro", "texto": "cachorro", "artigo": "o", "emoji": "🐶"},
-				{"id": "gato", "texto": "gato", "artigo": "o", "emoji": "🐱"},
 				{"id": "vaca", "texto": "vaca", "artigo": "a", "emoji": "🐮"},
-				{"id": "peixe", "texto": "peixe", "artigo": "o", "emoji": "🐟"},
-				{"id": "passaro", "texto": "pássaro", "artigo": "o", "emoji": "🐦"},
+				{"id": "porco", "texto": "porco", "artigo": "o", "emoji": "🐷"},
 				{"id": "cavalo", "texto": "cavalo", "artigo": "o", "emoji": "🐴"},
-				{"id": "porco", "texto": "porco", "artigo": "o", "emoji": "🐷"}
+				{"id": "pato", "texto": "pato", "artigo": "o", "emoji": "🦆"},
+				{"id": "pintinho", "texto": "pintinho", "artigo": "o", "emoji": "🐤"},
+				{"id": "galinha", "texto": "galinha", "artigo": "a", "emoji": "🐔"},
+				{"id": "coelho", "texto": "coelho", "artigo": "o", "emoji": "🐰"},
+				{"id": "urso", "texto": "urso", "artigo": "o", "emoji": "🐻"},
+				{"id": "macaco", "texto": "macaco", "artigo": "o", "emoji": "🐵"},
+				{"id": "sapo", "texto": "sapo", "artigo": "o", "emoji": "🐸"},
+				{"id": "elefante", "texto": "elefante", "artigo": "o", "emoji": "🐘"},
+				{"id": "girafa", "texto": "girafa", "artigo": "a", "emoji": "🦒"},
+				{"id": "pinguim", "texto": "pinguim", "artigo": "o", "emoji": "🐧"},
+				{"id": "zebra", "texto": "zebra", "artigo": "a", "emoji": "🦓"},
+				{"id": "panda", "texto": "panda", "artigo": "o", "emoji": "🐼"},
+				{"id": "coruja", "texto": "coruja", "artigo": "a", "emoji": "🦉"},
+				{"id": "baleia", "texto": "baleia", "artigo": "a", "emoji": "🐳"}
 			]
 		},
 		{
