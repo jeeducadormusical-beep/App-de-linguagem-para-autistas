@@ -40,6 +40,7 @@ func _ready() -> void:
 
 	c.add_child(UI.espacador(20))
 	c.add_child(_nota("Este app é uma brincadeira de apoio à comunicação. Ele não diagnostica, não trata e não substitui o acompanhamento profissional."))
+	c.add_child(_nota("Créditos: pictogramas de Sergio Palao, ARASAAC (arasaac.org), Governo de Aragão, licença CC BY-NC-SA. Animais: Kenney (kenney.nl), CC0. Fontes: Nunito e Noto Color Emoji (SIL OFL)."))
 
 
 func _nota(t: String) -> Label:

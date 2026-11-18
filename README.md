@@ -52,8 +52,11 @@ microfone (para o sopro) e com a de vibração. Você só precisa configurar sua
 
 Se uma imagem não existir, o app usa o emoji do item. Os `id` de cada item estão em `data/temas.json`.
 
-**Já incluído:** os 18 animais do tema "Animais" usam o **Animal Pack Redux do Kenney** (CC0,
-convertido do vetor para 512×512). Os outros temas ainda usam emojis. Para trocar uma imagem, basta
+**Já incluído:** todos os itens dos temas já têm imagem.
+- **Animais:** Animal Pack Redux do Kenney (CC0), convertido do vetor para 512×512.
+- **Frutas, carros, máquinas, comidas e brinquedos:** pictogramas do **ARASAAC**, o banco mais usado em
+  comunicação alternativa (CAA) para autismo (CC BY-NC-SA: uso gratuito não comercial, com crédito,
+  que já aparece no app). Para trocar uma imagem, basta
 substituir o arquivo com o mesmo nome. Os créditos estão em `assets/CREDITOS.md`.
 
 ---
