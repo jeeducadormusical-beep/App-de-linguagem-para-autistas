@@ -1,0 +1,29 @@
+{
+	"_ajuda": "Banco de frases do personagem (GDD 6.2, 10.3 e 11.3). Cada evento tem 3 formas, uma por nivel de apoio: [uma palavra, palavra com artigo, frase curta]. Cada forma pode ser um texto ou uma lista de textos (o app sorteia). Marcadores: {nome} = nome da crianca, {item} = palavra do tema, {artigo} = o/a, {cor} = nome da cor. Para usar um audio pre-gravado, coloque assets/falas/<evento>.ogg (ou .wav). 'ativo': false desliga o evento.",
+	"geral": {
+		"saudacao": {"niveis": ["Oi!", "Oi, {nome}!", "Oi, {nome}! Vamos brincar?"]},
+		"saudacao_sem_nome": {"niveis": ["Oi!", "Oi!", "Oi! Vamos brincar?"]},
+		"celebrar": {"niveis": [["Oba!", "Eba!"], ["Oba!", "Eba!"], ["Oba!", "Que legal!"]]},
+		"convite_fim": {"niveis": ["De novo?", "De novo?", "Vamos de novo ou trocar?"]},
+		"tchau": {"niveis": ["Tchau!", "Tchau, {nome}!", "Tchau, {nome}! Até logo!"]}
+	},
+	"torre": {
+		"inicio": {"niveis": ["Vamos?", "{nome}, vamos?", "{nome}, vamos fazer uma torre?"]},
+		"inicio_sem_nome": {"niveis": ["Vamos?", "Vamos?", "Vamos fazer uma torre?"]},
+		"colocar": {"niveis": ["Em cima", "Coloca em cima", "Coloca em cima da torre"]},
+		"cor": {"niveis": ["{cor}", "{cor}!", "Esse é {cor}!"]},
+		"item": {"niveis": ["{item}", "{artigo} {item}", "Olha {artigo} {item}!"]},
+		"alta": {"niveis": ["Alta!", "Ficou alta!", "Ficou alta, a torre!"]},
+		"bamba": {"niveis": ["Bamba!", "Está bamba!", "A torre está bamba!"]},
+		"caiu": {"niveis": ["Caiu!", "Caiu!", "Caiu tudo!"]},
+		"de_novo": {"niveis": ["De novo?", "De novo?", "Vamos de novo?"]},
+		"convite_inativo": {"niveis": ["Bloco?", "Mais um bloco?", "Vamos colocar mais um?"]}
+	},
+	"bolhas": {
+		"convite": {"niveis": ["Soprar?", "Vamos soprar?", "Vamos soprar bolhas?"]},
+		"surgem": {"niveis": ["Bolhas!", "Bolhas!", "Olha as bolhas!"]},
+		"revelar": {"niveis": ["{item}", "{artigo} {item}", "Olha {artigo} {item}!"]},
+		"fim_revelar": {"niveis": [["Mais!", "De novo?"], ["Mais!", "De novo?"], ["Quer mais?", "De novo?"]]},
+		"estourar": {"niveis": ["Pop!", "Pop!", "Pop! Estourou!"]}
+	}
+}

@@ -1,0 +1,6 @@
+# Pasta de cache do Godot (recriada automaticamente)
+.godot/
+# Builds
+build/
+*.apk
+*.aab

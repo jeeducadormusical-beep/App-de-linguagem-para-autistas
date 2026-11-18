@@ -1,0 +1,48 @@
+; Engine configuration file.
+; App de jogos para comunicacao e fala (criancas autistas) - prototipo do GDD
+config_version=5
+
+[application]
+
+config/name="Fala Brincando"
+config/description="Hub de jogos para comunicacao e fala de criancas autistas"
+run/main_scene="res://scenes/inicio.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.svg"
+config/quit_on_go_back=false
+
+[audio]
+
+driver/enable_input=true
+general/text_to_speech=true
+
+[autoload]
+
+UI="*res://autoload/ui.gd"
+Perfil="*res://autoload/perfil.gd"
+Fala="*res://autoload/fala.gd"
+Microfone="*res://autoload/microfone.gd"
+Jogo="*res://autoload/jogo.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[gui]
+
+common/drop_mouse_on_gui_input_disabled=true
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.933, 0.961, 0.984, 1)
