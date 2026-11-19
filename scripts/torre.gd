@@ -3,14 +3,12 @@ extends "res://scripts/base_jogo.gd"
 ## A torre ja comeca montada. A crianca SOPRA no celular:
 ##   - sopro fraco  -> a torre so balanca
 ##   - sopro forte  -> a torre cai devagar e aparece uma imagem dos temas de interesse
-## NIVEIS: a torre comeca pequena (1 fileira) e cai com um sopro bem fraquinho. A cada
-## queda ela volta uma fileira maior e pede um pouco mais de forca, ate chegar ao topo da tela.
+## QUALQUER sopro derruba a torre, do tamanho que ela estiver. A cada queda ela volta uma
+## fileira maior (so pela diversao de ver crescer), ate chegar ao topo da tela.
+## Enquanto a crianca sopra, o personagem fica quieto (a voz do app nao pode virar "sopro").
 ## Alternativa por toque (GDD: obrigatoria): segurar o dedo na torre funciona como soprar.
 ## Toque curto balanca, segurar derruba. Nada e erro: cair ou nao cair, tudo e brincadeira.
 
-## Forca do sopro (0..1) para derrubar: a torre menor pede so 10%, a maior pede 90%.
-const FORCA_MENOR := 0.1
-const FORCA_MAIOR := 0.9
 ## Numero maximo de fileiras (a torre vai diminuindo de escala para caber ate o topo).
 const NIVEL_MAX := 15
 ## Tempo seguido de sopro forte para derrubar (evita queda por um estalo de som).
@@ -252,7 +250,7 @@ func nivel() -> int:
 
 ## Forca (0..1) que o sopro precisa ter para derrubar a torre neste nivel.
 func limiar_queda() -> float:
-	return lerpf(FORCA_MENOR, FORCA_MAIOR, float(nivel() - 1) / (NIVEL_MAX - 1))
+	return 0.0  # qualquer sopro confirmado pelo microfone derruba
 
 
 # ------------------------------------------------------------ sopro, toque e balanco
@@ -278,7 +276,6 @@ func _process(delta: float) -> void:
 		_sopro = 0.0
 	if _sopro > 0.0:
 		tempo_sem_toque = 0.0
-		Fala.resposta("voz")  # soprar durante a pausa tambem e uma resposta aceita
 
 	# segurar o dedo = soprar cada vez mais forte (ate 1.0 em ~1,6 s)
 	if _segurando:
@@ -311,11 +308,7 @@ func _balancar(delta: float, vento: float) -> void:
 		pecas[i].rotation = _ang * 0.3 * frac          # torre "dobra" um pouco no alto
 		pecas[i].position = bases[i] + Vector2(_ang * 60.0 * frac * frac, 0)
 
-	if absf(_ang) > 0.07 and not _disse_bamba:
-		_disse_bamba = true
-		Fala.dizer("torre", "bamba")
-
-	if Perfil.config.torre_cai and vento > 0.0 and vento >= limiar_queda():
+	if Perfil.config.torre_cai and vento > limiar_queda():
 		_forte_t += delta
 		if _forte_t >= TEMPO_FORTE:
 			_derrubar()
@@ -332,6 +325,7 @@ func _derrubar() -> void:
 	var lado := 1.0 if _ang >= 0.0 else -1.0
 	var dur := 0.9 if reduzido else 1.6
 	Fala.som("queda")
+	Fala.parar()  # a queda ja e a resposta da crianca: encerra a pausa e fala logo
 	Fala.dizer("torre", "caiu")
 	# o Node2D volta ao prumo e cada peca cai "em camera lenta" para o lado do vento
 	var global_pecas := []

@@ -41,8 +41,10 @@ microfone (para o sopro) e com a de vibração. Você só precisa configurar sua
   (desligar ventilador e ar-condicionado) e **ajustar o sopro** com a criança soprando.
 - **Sopro "Fraco ↔ Forte":** no "fraco" o celular fica bem sensível (para quem ainda não sabe
   soprar), mas também capta ventilador e ar-condicionado. No "forte" precisa de mais sopro.
-- **Torre em níveis:** começa com 1 fileira e cai com um sopro bem fraquinho; a cada queda ganha
-  uma fileira e pede mais força, até chegar ao topo da tela (15 fileiras).
+- **Torre:** começa com 1 fileira e **qualquer sopro derruba**, de qualquer tamanho. A cada queda
+  ganha uma fileira (só pela diversão), até o topo da tela (15 fileiras).
+- **Proteções contra sopro falso:** o microfone fica surdo enquanto o personagem fala; o som
+  precisa durar um pouquinho para contar; o barulho do ambiente é reaprendido aos poucos.
 - **Bolhas:** cada sopro solta logo 4 bolhas espalhadas; soprando mais forte saem mais. A imagem
   só aparece depois de a criança estourar algumas bolhas vazias.
 - **Fim suave:** depois de alguns minutos (3, 6 ou 10, a configurar), o personagem convida
@@ -137,8 +139,8 @@ data/
 **Já está:** hub modular; primeira sessão guiada com consentimento, medição do ambiente e ajuste
 do sopro; apelido e temas; tipo de fala (só a palavra, com artigo, frase curta) mudável dentro do
 jogo; voz única por síntese pt-BR com texto sempre junto; ciclo modelo → pausa → aceitação igual
-para qualquer resposta; personagem com 5 estados; Torre do Castelo em níveis (de 1 a 15 fileiras,
-cada nível pede mais sopro) com alternativa por toque; Bolhas (rajada a cada sopro, quantidade
+para qualquer resposta; personagem com 5 estados; Torre do Castelo que cresce de 1 a 15 fileiras
+(qualquer sopro derruba) com alternativa por toque; Bolhas (rajada a cada sopro, quantidade
 proporcional à força, varinha por toque); microfone sem gravação, com calibração do ambiente e
 controle Fraco ↔ Forte; volume e sons; apagar todos os dados; botão voltar do Android tratado.
 

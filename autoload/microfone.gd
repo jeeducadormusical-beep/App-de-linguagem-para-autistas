@@ -8,13 +8,24 @@ extends Node
 ##    microfone gera um "ronco" grave, entao NAO exigimos som de ar/chiado);
 ##  - a forca do sopro (0 a 1) cresce em decibeis acima do limiar, entao um sopro
 ##    fraquinho ja da uma forca pequena, e um sopro forte chega a 1.
+## Protecoes contra "sopro falso":
+##  - o microfone fica surdo enquanto o personagem fala (e um pouquinho depois), para a
+##    voz do proprio app no alto-falante nao contar como sopro;
+##  - o som precisa durar um pouco (TEMPO_CONFIRMAR) para contar: tosse, porta e estalo nao;
+##  - o ruido do ambiente e reaprendido devagar (ventilador ligado depois da medicao).
 
 signal sopro(forca: float)   # 0..1, emitido a cada quadro enquanto ha sopro
 
 ## Sensibilidade 1..10 -> quantos dB acima do ruido o som precisa estar para contar.
 ## 10 = muito sensivel (3 dB), 1 = pouco sensivel (16 dB).
-const DB_MIN := 3.0
-const DB_MAX := 16.0
+const DB_MIN := 6.0
+const DB_MAX := 20.0
+## Quanto tempo seguido (s) o som precisa durar para contar como sopro.
+const TEMPO_CONFIRMAR := 0.25
+## Pequenas falhas dentro do sopro (s) que ainda contam como o mesmo sopro.
+const FOLGA := 0.15
+## Quanto tempo (s) o microfone continua surdo depois que o personagem para de falar.
+const SURDO_DEPOIS_DA_FALA := 0.7
 ## Faixa (em dB acima do limiar) que vai de forca 0 ate forca 1.
 const FAIXA_DB := 20.0
 
@@ -28,6 +39,12 @@ var _player: AudioStreamPlayer
 var _calibrando := 0.0
 var _amostras_ruido: Array[float] = []
 var _voz_ate := 0.0
+var _tempo_soprando := 0.0
+var _folga := 0.0
+var _surdo_ate := 0.0
+var _relogio := 0.0
+## Um "sopro" que dura mais que isso sem parar e barulho continuo (ventilador, TV).
+const SOPRO_MAXIMO := 4.0
 
 # diagnostico e recuperacao (no Android a entrada de audio as vezes nao inicia de primeira)
 var amostras_por_segundo := 0
@@ -143,11 +160,26 @@ func db_acima_do_ruido() -> float:
 	return para_db(nivel) - para_db(maxf(ruido, 0.0015))
 
 
-## Forca do sopro agora: 0 (nada) ate 1 (sopro forte).
+## O app esta falando agora (ou acabou de falar)? Nesse tempo o microfone nao escuta.
+func surdo() -> bool:
+	return _relogio < _surdo_ate
+
+
+func _app_falando() -> bool:
+	if Fala.estado == Fala.FALANDO or Fala.estado == Fala.CELEBRANDO or Fala.estado == Fala.CONVIDANDO:
+		return true
+	return Fala.falando_agora()
+
+
+## Forca do som agora (nivel suavizado, para o medidor): 0 (nada) ate 1 (sopro forte).
 func forca_sopro() -> float:
-	if not ativo or _calibrando > 0.0:
+	return _forca_de(nivel)
+
+
+func _forca_de(rms: float) -> float:
+	if not ativo or _calibrando > 0.0 or surdo():
 		return 0.0
-	var acima := db_acima_do_ruido() - db_necessarios()
+	var acima := para_db(rms) - para_db(maxf(ruido, 0.0015)) - db_necessarios()
 	if acima <= 0.0:
 		return 0.0
 	return clampf(0.05 + acima / FAIXA_DB, 0.05, 1.0)
@@ -155,7 +187,7 @@ func forca_sopro() -> float:
 
 ## Houve som da crianca recentemente? (so presenca de som, nunca julga a palavra)
 func voz_agora() -> bool:
-	return ativo and Perfil.config.detectar_voz and Time.get_ticks_msec() / 1000.0 < _voz_ate
+	return ativo and Perfil.config.detectar_voz and _relogio < _voz_ate
 
 
 func _process(delta: float) -> void:
@@ -179,8 +211,14 @@ func _process(delta: float) -> void:
 		soma += s * s
 	var rms := sqrt(soma / buf.size())
 	_vigiar(delta, rms > 0.0)
-	# sobe rapido e desce devagar: o sopro fraco e irregular nao "pisca"
-	nivel = lerpf(nivel, rms, 0.6 if rms > nivel else 0.2)
+	_analisar(rms, delta)
+
+
+## Analisa um pedaco de som (intensidade RMS) que durou `delta` segundos.
+func _analisar(rms: float, delta: float) -> void:
+	_relogio += delta
+	# medidor: sobe rapido e desce um pouco mais devagar
+	nivel = lerpf(nivel, rms, 0.6 if rms > nivel else 0.35)
 
 	if _calibrando > 0.0:
 		_calibrando -= delta
@@ -191,10 +229,29 @@ func _process(delta: float) -> void:
 			ruido = maxf(_amostras_ruido[_amostras_ruido.size() / 2], 0.0015)
 		return
 
-	var f := forca_sopro()
+	if _app_falando():
+		_surdo_ate = _relogio + SURDO_DEPOIS_DA_FALA
+
+	# a duracao e medida com o som instantaneo (estalo curto nao "arrasta" o medidor)
+	var f := _forca_de(rms)
 	if f > 0.0:
+		_tempo_soprando += delta
+		_folga = FOLGA
+		if _tempo_soprando > SOPRO_MAXIMO:
+			# som que nao para e barulho do ambiente: reaprende o ruido rapido
+			ruido = lerpf(ruido, rms, 0.05)
+	else:
+		_folga -= delta
+		if _folga <= 0.0:
+			_tempo_soprando = 0.0
+		# sem sopro e sem o app falando: reaprende o ruido do ambiente devagar
+		if not surdo():
+			var rapido := 0.02 if rms < ruido else 0.003
+			ruido = maxf(lerpf(ruido, rms, rapido), 0.0015)
+	# so conta como sopro depois de durar um pouquinho
+	if f > 0.0 and _tempo_soprando >= TEMPO_CONFIRMAR:
 		sopro.emit(f)
-		_voz_ate = Time.get_ticks_msec() / 1000.0 + 0.4
+		_voz_ate = _relogio + 0.4
 
 
 ## Se o microfone fica 1,5 s sem mandar som nenhum (nem o chiado minimo do ambiente),

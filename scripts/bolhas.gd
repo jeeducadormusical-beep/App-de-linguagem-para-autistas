@@ -96,9 +96,6 @@ func _ao_soprar(forca: float) -> void:
 	_ultimo_sopro = _relogio
 	# enquanto sopra: mais forca = mais bolhas por segundo (com limite na tela)
 	_acumulado += lerpf(TAXA_FRACA, TAXA_FORTE, forca) * get_process_delta_time()
-	if _relogio - _ultimo_surgem > 15.0 and not Fala.ocupado():
-		_ultimo_surgem = _relogio
-		Fala.dizer("bolhas", "surgem")
 
 
 func _process(delta: float) -> void:
@@ -127,6 +124,12 @@ func _process(delta: float) -> void:
 		b.position.x = b.x_base + sin(b.fase * 1.1) * 22.0
 		if b.position.y < 150:
 			_estourar(b, false)  # chegou ao topo: estoura sozinha, sem revelar
+
+	# "Bolhas!" so depois que a crianca para de soprar (a voz do app nao pode cortar o sopro)
+	var parou_ha := _relogio - _ultimo_sopro
+	if parou_ha > 0.6 and parou_ha < 1.0 and _relogio - _ultimo_surgem > 15.0 and not Fala.ocupado():
+		_ultimo_surgem = _relogio
+		Fala.dizer("bolhas", "surgem")
 
 	if tempo_sem_toque > 20.0 and not _convidou_inativo and not Fala.ocupado():
 		_convidou_inativo = true

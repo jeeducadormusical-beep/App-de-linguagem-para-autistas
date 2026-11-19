@@ -116,7 +116,7 @@ func _secao_sopro(c: VBoxContainer) -> void:
 
 func _secao_torre(c: VBoxContainer) -> void:
 	var v := _cartao(c, "🏰 Torre do Castelo")
-	v.add_child(_nota("A torre começa pequena e cresce a cada queda, pedindo um sopro um pouco mais forte."))
+	v.add_child(_nota("A torre começa pequena e cresce a cada queda. Qualquer sopro derruba, de qualquer tamanho."))
 	var tamanho := _nota("Tamanho agora: %d" % int(Perfil.config.nivel_torre))
 	v.add_child(tamanho)
 	var recomecar := UI.botao("Voltar para a torre pequena", UI.CORES.superficie, 24, 80, UI.CORES.texto)

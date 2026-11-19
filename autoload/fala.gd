@@ -231,6 +231,13 @@ func _falar(texto: String, arquivo: String) -> void:
 	_abaixar_efeitos()
 
 
+## A voz do app (gravada ou sintetica) esta tocando agora?
+func falando_agora() -> bool:
+	if _player_voz and _player_voz.playing:
+		return true
+	return _voz_id != "" and DisplayServer.tts_is_speaking()
+
+
 func calar() -> void:
 	if _player_voz:
 		_player_voz.stop()
