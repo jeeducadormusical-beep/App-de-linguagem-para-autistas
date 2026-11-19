@@ -4,19 +4,21 @@ extends "res://scripts/base_jogo.gd"
 ##   - sopro fraco  -> a torre so balanca
 ##   - sopro forte  -> a torre cai devagar e aparece uma imagem dos temas de interesse
 ## NIVEIS: a torre comeca pequena (1 fileira) e cai com um sopro bem fraquinho. A cada
-## queda ela volta um pouco maior e pede um pouco mais de forca, ate o nivel 5.
+## queda ela volta uma fileira maior e pede um pouco mais de forca, ate chegar ao topo da tela.
 ## Alternativa por toque (GDD: obrigatoria): segurar o dedo na torre funciona como soprar.
 ## Toque curto balanca, segurar derruba. Nada e erro: cair ou nao cair, tudo e brincadeira.
 
-## Forca do sopro (0..1) para derrubar a torre MAIOR: fraco, medio, forte (ajuste do responsavel).
-const LIMIAR_QUEDA := [0.35, 0.6, 0.85]
-## Quanto dessa forca cada nivel pede: nivel 1 so 15% (sopro fraquinho), nivel 5 quase tudo.
-const FRACAO_NIVEL := [0.15, 0.3, 0.5, 0.7, 0.9]
-const NIVEL_MAX := 5
+## Forca do sopro (0..1) para derrubar: a torre menor pede so 10%, a maior pede 90%.
+const FORCA_MENOR := 0.1
+const FORCA_MAIOR := 0.9
+## Numero maximo de fileiras (a torre vai diminuindo de escala para caber ate o topo).
+const NIVEL_MAX := 15
 ## Tempo seguido de sopro forte para derrubar (evita queda por um estalo de som).
 const TEMPO_FORTE := 0.3
-## Tamanho da torre na tela.
+## Tamanho maximo da torre na tela (ela encolhe quando fica alta, para caber).
 const ESCALA := 1.2
+## Espaco livre no alto da tela (balao de fala e botoes).
+const TOPO_LIVRE := 250.0
 
 const COR_PEDRA := [Color("D5DDEA"), Color("C8D2E3")]
 const COR_CONTORNO := Color("9FAEC6")
@@ -109,6 +111,7 @@ var _disse_bamba := false
 var _convidou_inativo := false
 var _primeira_vez := true
 var _subiu := false
+var _montagem: Tween
 var _ultimo_item := ""
 
 
@@ -130,13 +133,12 @@ func _montar(a: Control) -> void:
 
 	torre = Node2D.new()
 	torre.position = Vector2(tela.x / 2.0 + 30, chao_y)
-	torre.scale = Vector2.ONE * ESCALA
 	a.add_child(torre)
 
 	# area de toque generosa sobre a torre (segurar = soprar)
 	zona_toque = Control.new()
-	zona_toque.position = torre.position + Vector2(-200, -760)
-	zona_toque.size = Vector2(400, 770)
+	zona_toque.position = Vector2(torre.position.x - 220, TOPO_LIVRE)
+	zona_toque.size = Vector2(440, chao_y - TOPO_LIVRE + 10)
 	zona_toque.mouse_filter = Control.MOUSE_FILTER_STOP
 	zona_toque.gui_input.connect(_ao_tocar_torre)
 	a.add_child(zona_toque)
@@ -195,8 +197,19 @@ func _construir(inicio := false) -> void:
 		defs.append({"tipo": "fileira", "tam": Vector2(230, 70), "janela": i == mini(1, fileiras - 1) and fileiras > 1})
 	defs.append({"tipo": "ameias", "tam": Vector2(262, 62), "janela": false})
 	defs.append({"tipo": "telhado", "tam": Vector2(290, 190), "janela": false})
+	# altura total; se nao couber entre o chao e o topo livre, a torre encolhe
+	var altura := 0.0
+	for d in defs:
+		altura += d.tam.y - 6.0
+	var livre := torre.position.y - TOPO_LIVRE
+	torre.scale = Vector2.ONE * minf(ESCALA, livre / altura)
 	var y := 0.0
+	if _montagem and _montagem.is_valid():
+		_montagem.kill()
 	var t := create_tween()
+	_montagem = t
+	# torre alta monta mais rapido: no maximo ~1,5 s no total
+	var passo := minf(0.28, 1.5 / defs.size())
 	for i in defs.size():
 		var d: Dictionary = defs[i]
 		var p := Peca.new()
@@ -212,8 +225,8 @@ func _construir(inicio := false) -> void:
 		# cada peca desce suavemente do alto, de baixo para cima
 		p.position = base + Vector2(0, -320)
 		p.modulate.a = 0.0
-		t.tween_property(p, "position", base, 0.28).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		t.parallel().tween_property(p, "modulate:a", 1.0, 0.2)
+		t.tween_property(p, "position", base, passo).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		t.parallel().tween_property(p, "modulate:a", 1.0, passo * 0.8)
 	t.tween_callback(func():
 		Fala.som("encaixe")
 		estado = EM_PE
@@ -239,8 +252,7 @@ func nivel() -> int:
 
 ## Forca (0..1) que o sopro precisa ter para derrubar a torre neste nivel.
 func limiar_queda() -> float:
-	var base: float = LIMIAR_QUEDA[clampi(int(Perfil.config.forca_derrubar), 0, 2)]
-	return base * FRACAO_NIVEL[nivel() - 1]
+	return lerpf(FORCA_MENOR, FORCA_MAIOR, float(nivel() - 1) / (NIVEL_MAX - 1))
 
 
 # ------------------------------------------------------------ sopro, toque e balanco
@@ -363,7 +375,7 @@ func _revelar() -> void:
 func _reconstruir() -> void:
 	# depois de cada queda, a torre volta um nivel maior (ate o nivel 5)
 	_subiu = false
-	if estado == CAINDO and Perfil.config.torre_sobe_nivel and nivel() < NIVEL_MAX:
+	if estado == CAINDO and nivel() < NIVEL_MAX:
 		Perfil.definir("nivel_torre", nivel() + 1)
 		_subiu = true
 	esconder_revelacao(revelacao)

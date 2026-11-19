@@ -65,5 +65,3 @@ func _notification(what: int) -> void:
 				get_tree().quit()
 			_:
 				ir_para("hub")
-	elif what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
-		Perfil.encerrar_sessao()

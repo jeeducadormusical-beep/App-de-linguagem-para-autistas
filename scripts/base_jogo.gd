@@ -1,7 +1,7 @@
 extends Control
 ## Base de todo jogo (contrato do modulo - GDD 4 e 16.1). Cada jogo estende este script e
-## ganha de graca: botao grande de casa, balao de fala, personagem, botao "ele respondeu",
-## fim suave ("De novo?") e registro no diario.
+## ganha de graca: botao grande de casa, balao de fala, personagem, cadeado de ajustes
+## rapidos e fim suave ("De novo?").
 ##
 ## O jogo filho implementa:
 ##   func _montar(area: Control) -> void   # cria os elementos do jogo
@@ -38,25 +38,11 @@ func _ready() -> void:
 	area.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(area)
 
-	# barra de cima: casa (livre para a crianca) e "ele respondeu" (discreto, do responsavel)
+	# barra de cima: casa (livre para a crianca) e cadeado (do responsavel)
 	var casa := UI.botao_icone("🏠", UI.CORES.superficie, 104)
 	casa.position = Vector2(24, 36)
 	casa.pressed.connect(func(): Jogo.ir_para("hub"))
 	add_child(casa)
-
-	var respondeu := UI.botao_icone("👍", UI.CORES.superficie, 80)
-	respondeu.modulate.a = 0.45
-	respondeu.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	respondeu.offset_left = -104
-	respondeu.offset_right = -24
-	respondeu.offset_top = 148
-	respondeu.offset_bottom = 228
-	respondeu.tooltip_text = "Ele respondeu (registro do responsável)"
-	respondeu.pressed.connect(func():
-		Fala.ele_respondeu()
-		respondeu.modulate.a = 0.9
-		create_tween().tween_property(respondeu, "modulate:a", 0.45, 0.8))
-	add_child(respondeu)
 
 	# cadeado do responsavel: segurar 3 s abre os ajustes rapidos sem sair do jogo
 	var portao := Control.new()
@@ -87,7 +73,6 @@ func _ready() -> void:
 	add_child(personagem)
 
 	_montar(area)
-	Perfil.iniciar_sessao(id_jogo)
 	Microfone.ligar()
 
 
@@ -100,13 +85,11 @@ func _recomecar() -> void:
 
 
 func _exit_tree() -> void:
-	Perfil.encerrar_sessao()
 	Microfone.desligar()
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_RESUMED and is_inside_tree():
-		Perfil.iniciar_sessao(id_jogo)
 		Microfone.ligar()
 
 

@@ -230,27 +230,34 @@ func seletor(opcoes: Array, atual: int, ao_mudar: Callable) -> HBoxContainer:
 	return h
 
 
-## Interruptor liga/desliga com texto grande que quebra linha.
-## Retorna a linha (HBox); o CheckButton fica em linha.get_meta("botao").
-func interruptor(texto: String, ligado: bool, ao_mudar: Callable) -> HBoxContainer:
+## Interruptor liga/desliga: texto que quebra linha + botao grande "Ligado"/"Desligado".
+## Retorna a linha (HBox); o botao fica em linha.get_meta("botao").
+func interruptor(texto: String, ligado: bool, ao_mudar: Callable, rotulos := ["Ligado", "Desligado"]) -> HBoxContainer:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
-	h.custom_minimum_size.y = 72
 	var l := rotulo(texto, 26, CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l.mouse_filter = Control.MOUSE_FILTER_STOP
 	h.add_child(l)
-	var c := CheckButton.new()
-	c.button_pressed = ligado
-	c.focus_mode = Control.FOCUS_NONE
-	c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	c.toggled.connect(ao_mudar)
-	h.add_child(c)
-	# tocar no texto tambem liga/desliga
-	l.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			c.button_pressed = not c.button_pressed)
-	h.set_meta("botao", c)
+	var b := Button.new()
+	b.toggle_mode = true
+	b.button_pressed = ligado
+	b.custom_minimum_size = Vector2(170, 72)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", fonte(24))
+	b.add_theme_stylebox_override("normal", caixa(CORES.borda, 36, 0))
+	b.add_theme_stylebox_override("hover", caixa(CORES.borda, 36, 0))
+	b.add_theme_stylebox_override("pressed", caixa(CORES.menta, 36, 0))
+	b.add_theme_stylebox_override("hover_pressed", caixa(CORES.menta, 36, 0))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	for estado in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(estado, CORES.texto)
+	b.text = rotulos[0] if ligado else rotulos[1]
+	b.toggled.connect(func(on):
+		b.text = rotulos[0] if on else rotulos[1])
+	b.toggled.connect(ao_mudar)
+	h.add_child(b)
+	h.set_meta("botao", b)
 	return h
 
 
@@ -307,59 +314,87 @@ func seletor_temas() -> GridContainer:
 	return g
 
 
-## Controle de sensibilidade do microfone (1 a 10), com rotulos simples.
-func controle_sensibilidade() -> HBoxContainer:
+## Controle do sopro: "Fraco" (celular bem sensivel) ate "Forte" (menos sensivel).
+## Guarda em Perfil.config.sensibilidade (10 = mais sensivel).
+func controle_sopro() -> VBoxContainer:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
-	var pouco := rotulo("Pouco", 22, CORES.texto_suave)
-	pouco.autowrap_mode = TextServer.AUTOWRAP_OFF
-	h.add_child(pouco)
+	v.add_child(h)
+	var fraco := rotulo("Fraco", 24, CORES.texto)
+	fraco.autowrap_mode = TextServer.AUTOWRAP_OFF
+	h.add_child(fraco)
 	var s := HSlider.new()
 	s.min_value = 1
 	s.max_value = 10
 	s.step = 1
-	s.value = Perfil.config.sensibilidade
-	s.custom_minimum_size.y = 64
+	s.value = 11 - int(Perfil.config.sensibilidade)
+	s.custom_minimum_size.y = 72
 	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	s.focus_mode = Control.FOCUS_NONE
 	h.add_child(s)
-	var muito := rotulo("Muito", 22, CORES.texto_suave)
-	muito.autowrap_mode = TextServer.AUTOWRAP_OFF
-	h.add_child(muito)
-	var n := rotulo(str(int(s.value)), 26, CORES.primaria_escura)
-	n.autowrap_mode = TextServer.AUTOWRAP_OFF
-	n.custom_minimum_size.x = 40
-	h.add_child(n)
-	s.value_changed.connect(func(x):
-		n.text = str(int(x))
-		Perfil.definir("sensibilidade", int(x)))
-	return h
+	var forte := rotulo("Forte", 24, CORES.texto)
+	forte.autowrap_mode = TextServer.AUTOWRAP_OFF
+	h.add_child(forte)
+	s.value_changed.connect(func(x): Perfil.definir("sensibilidade", 11 - int(x)))
+	var aviso := rotulo("⚠️ No \"fraco\" o celular fica bem sensível e pode captar ventilador, ar-condicionado e outros barulhos. Faça a atividade com eles desligados.", 21, CORES.texto_suave, HORIZONTAL_ALIGNMENT_LEFT)
+	v.add_child(aviso)
+	return v
 
 
-## Barra que mostra o sopro ao vivo.
+## Barra que mostra o sopro ao vivo (azul = ainda nao conta, verde = conta como sopro).
 func medidor_sopro() -> ProgressBar:
 	var m := ProgressBar.new()
 	m.max_value = 1.0
 	m.show_percentage = false
-	m.custom_minimum_size.y = 40
-	m.add_theme_stylebox_override("background", caixa(CORES.borda, 20, 0))
-	m.add_theme_stylebox_override("fill", caixa(CORES.ceu, 20, 0))
+	m.custom_minimum_size.y = 44
+	m.add_theme_stylebox_override("background", caixa(CORES.borda, 22, 0))
+	m.set_meta("fill_azul", caixa(CORES.ceu, 22, 0))
+	m.set_meta("fill_verde", caixa(CORES.menta.darkened(0.1), 22, 0))
+	m.add_theme_stylebox_override("fill", m.get_meta("fill_azul"))
+	m.set_meta("verde", false)
 	return m
 
 
-## Atualiza a barra: azul-claro = som abaixo do limiar; verde = conta como sopro.
 func atualizar_medidor(m: ProgressBar, estado: Label) -> void:
+	var texto := ""
+	var valor := 0.0
+	var f := 0.0
 	if not Microfone.ativo:
-		m.value = 0.0
-		estado.text = "Microfone desligado ou sem permissão."
-		return
-	if Microfone.calibrando():
-		m.value = 0.0
-		estado.text = "Medindo o barulho do ambiente… fique em silêncio."
-		return
-	var total := Microfone.db_necessarios() + Microfone.FAIXA_DB
-	m.value = clampf(Microfone.db_acima_do_ruido() / total, 0.0, 1.0)
-	var f := Microfone.forca_sopro()
-	var cor: Color = CORES.menta if f > 0.0 else CORES.ceu
-	m.add_theme_stylebox_override("fill", caixa(cor, 20, 0))
-	estado.text = "🫧 Sopro! Força: %d%%" % int(f * 100) if f > 0.0 else "Sopre no microfone (parte de baixo do celular)."
+		texto = "Microfone desligado ou sem permissão."
+	elif Microfone.calibrando():
+		texto = "Medindo o barulho do ambiente… silêncio, por favor."
+	else:
+		var total := Microfone.db_necessarios() + Microfone.FAIXA_DB
+		valor = clampf(Microfone.db_acima_do_ruido() / total, 0.0, 1.0)
+		f = Microfone.forca_sopro()
+		texto = "🫧 Sopro!" if f > 0.0 else "Peça para a criança soprar no celular."
+	# so troca o que mudou: mexer no estilo a cada quadro atrapalha a rolagem da tela
+	if absf(m.value - valor) > 0.01:
+		m.value = valor
+	var verde := f > 0.0
+	if verde != m.get_meta("verde"):
+		m.set_meta("verde", verde)
+		m.add_theme_stylebox_override("fill", m.get_meta("fill_verde" if verde else "fill_azul"))
+	if estado.text != texto:
+		estado.text = texto
+
+
+## Coluna com rolagem vertical, ajustada para o dedo no celular:
+## - so rola na vertical; - uma pequena "zona morta" para um toque nao virar rolagem;
+## - nao pula sozinha para o campo de texto quando o teclado abre.
+func coluna_rolavel(pai: Control) -> VBoxContainer:
+	var r := ScrollContainer.new()
+	r.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	r.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	r.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	r.follow_focus = false
+	r.scroll_deadzone = 12
+	pai.add_child(r)
+	var c := VBoxContainer.new()
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	c.add_theme_constant_override("separation", 14)
+	r.add_child(c)
+	return c

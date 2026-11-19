@@ -85,15 +85,7 @@ func falar_texto(texto: String) -> void:
 func resposta(tipo := "respostas_toque") -> void:
 	if estado != ESPERANDO:
 		return
-	Perfil.registrar_resposta(tipo)
 	_celebrar()
-
-
-## Botao discreto do responsavel: registra no diario. NAO muda a reacao do jogo (GDD 9.1).
-func ele_respondeu() -> void:
-	Perfil.registrar_resposta("ele_respondeu")
-	if estado == ESPERANDO:
-		_celebrar()
 
 
 func ocupado() -> bool:
@@ -128,8 +120,6 @@ func _agendar(ev: Dictionary) -> void:
 func _iniciar(ev: Dictionary) -> void:
 	_ciclo = ev
 	_ciclo["repetiu"] = false
-	# o diario guarda as palavras de interesse que apareceram (GDD 14.1)
-	Perfil.registrar_palavra(ev.item.get("texto", ""))
 	_modelo()
 
 

@@ -1,11 +1,12 @@
 extends Control
-## Area dos responsaveis (GDD sec. 6, 13, 14 e 15). Protegida pelo portao no hub.
-## Linguagem simples, sem termos tecnicos, alto contraste.
+## Configuracoes do responsavel. Protegida pelo cadeado (segurar 3 s).
+## Pensada para ser simples: so o essencial, com linguagem do dia a dia.
 
 var _medidor: ProgressBar
+var _estado_sopro: Label
 var _status_mic: Label
-var _sopro_ok: Label
-var _ruido: Label
+var _caixa_sopro: VBoxContainer
+var _exemplo: Label
 
 
 func _ready() -> void:
@@ -14,7 +15,7 @@ func _ready() -> void:
 	var topo := HBoxContainer.new()
 	topo.add_theme_constant_override("separation", 12)
 	v.add_child(topo)
-	var titulo := UI.rotulo("Área dos responsáveis", 34, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
+	var titulo := UI.rotulo("Configurações", 36, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 	titulo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	topo.add_child(titulo)
 	# se veio de dentro de um jogo, volta para o mesmo jogo
@@ -23,35 +24,23 @@ func _ready() -> void:
 	voltar.pressed.connect(func(): Jogo.ir_para(destino))
 	topo.add_child(voltar)
 
-	var rolagem := ScrollContainer.new()
-	rolagem.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rolagem.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(rolagem)
-	var c := VBoxContainer.new()
-	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	c.add_theme_constant_override("separation", 14)
-	rolagem.add_child(c)
-
-	_secao_perfil(c)
+	var c := UI.coluna_rolavel(v)
+	_secao_crianca(c)
 	_secao_fala(c)
-	_secao_conforto(c)
-	_secao_jogos(c)
-	_secao_microfone(c)
-	_secao_diario(c)
-	_secao_inicio(c)
-	_secao_privacidade(c)
-
-	c.add_child(UI.espacador(20))
-	c.add_child(_nota("Este app é uma brincadeira de apoio à comunicação. Ele não diagnostica, não trata e não substitui o acompanhamento profissional."))
-	c.add_child(_nota("Créditos: pictogramas de Sergio Palao, ARASAAC (arasaac.org), Governo de Aragão, licença CC BY-NC-SA. Animais: Kenney (kenney.nl), CC0. Fontes: Nunito e Noto Color Emoji (SIL OFL)."))
+	_secao_sopro(c)
+	_secao_torre(c)
+	_secao_som(c)
+	_secao_outros(c)
+	var topo_btn := UI.botao("▲ Voltar ao topo", UI.CORES.superficie, 24, 80, UI.CORES.texto)
+	topo_btn.pressed.connect(func():
+		var r := c.get_parent() as ScrollContainer
+		r.scroll_vertical = 0)
+	c.add_child(topo_btn)
+	c.add_child(UI.espacador(24))
 
 
 func _nota(t: String) -> Label:
 	return UI.rotulo(t, 22, UI.CORES.texto_suave, HORIZONTAL_ALIGNMENT_LEFT)
-
-
-func _rot(t: String) -> Label:
-	return UI.rotulo(t, 24, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 
 
 func _cartao(c: VBoxContainer, titulo: String) -> VBoxContainer:
@@ -64,101 +53,42 @@ func _cartao(c: VBoxContainer, titulo: String) -> VBoxContainer:
 	return v
 
 
-func _toggle(v: VBoxContainer, texto: String, chave: String) -> void:
-	v.add_child(UI.interruptor(texto, Perfil.config[chave], func(on): Perfil.definir(chave, on)))
-
-
 # ------------------------------------------------------------ secoes
 
-func _secao_perfil(c: VBoxContainer) -> void:
-	var v := _cartao(c, "👤 Perfil")
-	v.add_child(_rot("Nome ou apelido"))
+func _secao_crianca(c: VBoxContainer) -> void:
+	var v := _cartao(c, "🙂 Criança")
+	v.add_child(_nota("Apelido (o personagem fala esse nome):"))
 	var nome := UI.campo_texto(Perfil.config.nome, "Ex.: Bia")
 	nome.text_changed.connect(func(t): Perfil.definir("nome", t.strip_edges()))
 	v.add_child(nome)
-	v.add_child(_rot("Como a voz deve falar o nome"))
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 12)
-	var voz := UI.campo_texto(Perfil.config.nome_voz, "Igual ao nome")
-	voz.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	voz.text_changed.connect(func(t): Perfil.definir("nome_voz", t.strip_edges()))
-	h.add_child(voz)
-	var ouvir := UI.botao("🔊", UI.CORES.menta, 34, 80, UI.CORES.texto)
-	ouvir.pressed.connect(func(): Fala.falar_texto("Oi, %s!" % Perfil.nome_falado() if Perfil.nome() != "" else "Oi!"))
-	h.add_child(ouvir)
-	v.add_child(h)
-	v.add_child(_rot("Temas de interesse"))
+	v.add_child(_nota("Do que a criança gosta? (aparece quando a torre cai e nas bolhas)"))
 	v.add_child(UI.seletor_temas())
-	v.add_child(_nota("Imagens próprias: coloque PNGs em assets/imagens/ com o nome do item (ex.: banana.png)."))
 
 
 func _secao_fala(c: VBoxContainer) -> void:
-	var v := _cartao(c, "💬 Fala do personagem")
-	v.add_child(_rot("Nível de apoio"))
-	var exemplo := _nota("")
-	var mostrar_exemplo := func():
-		exemplo.text = "Exemplo: \"%s\"" % Fala.frase("torre", "revelar", {"item": "banana", "artigo": "a"})
+	var v := _cartao(c, "💬 Como o personagem fala")
+	_exemplo = _nota("")
 	v.add_child(UI.seletor(["Só a palavra", "Com artigo", "Frase curta"], Perfil.config.nivel_apoio, func(i):
 		Perfil.definir("nivel_apoio", i)
-		mostrar_exemplo.call()))
-	mostrar_exemplo.call()
-	v.add_child(exemplo)
-	v.add_child(_rot("Tempo de pausa (espera pela resposta)"))
-	v.add_child(UI.seletor(["Curta", "Média", "Longa"], Perfil.config.pausa, func(i): Perfil.definir("pausa", i)))
-	_toggle(v, "Repetir a palavra uma vez se não houver resposta", "repetir_modelo")
-	_toggle(v, "Mostrar texto na tela", "texto_ligado")
-	_toggle(v, "Texto grande", "texto_grande")
-	var testar := UI.botao("🔊 Ouvir a voz", UI.CORES.superficie, 26, 80, UI.CORES.texto)
-	testar.pressed.connect(func(): Fala.falar_texto(Fala.frase("torre", "revelar", {"item": "banana", "artigo": "a"})))
-	v.add_child(testar)
+		_mostrar_exemplo()
+		Fala.falar_texto(_frase_exemplo())))
+	v.add_child(_exemplo)
+	_mostrar_exemplo()
 
 
-func _secao_conforto(c: VBoxContainer) -> void:
-	var v := _cartao(c, "🌙 Conforto sensorial")
-	v.add_child(_rot("Volume"))
-	var vol := HSlider.new()
-	vol.min_value = 0.1
-	vol.max_value = 1.0
-	vol.step = 0.05
-	vol.value = Perfil.config.volume
-	vol.custom_minimum_size.y = 64
-	vol.value_changed.connect(func(x): Perfil.definir("volume", x))
-	vol.drag_ended.connect(func(_c): Fala.som("encaixe"))
-	v.add_child(vol)
-	_toggle(v, "Efeitos sonoros", "efeitos")
-	_toggle(v, "Reduzir movimento", "movimento_reduzido")
-	_toggle(v, "Tema calmo (menos cores)", "tema_calmo")
-	_toggle(v, "Vibração leve", "vibrar")
+func _frase_exemplo() -> String:
+	return Fala.frase("torre", "revelar", {"item": "banana", "artigo": "a"})
 
 
-func _secao_jogos(c: VBoxContainer) -> void:
-	var v := _cartao(c, "🎮 Jogos")
-	var vis: Dictionary = Perfil.config.jogos_visiveis
-	for j in Jogo.CATALOGO:
-		var id: String = j.id
-		v.add_child(UI.interruptor("Mostrar %s %s" % [j.icone, j.nome], vis.get(id, true), func(on):
-			var d: Dictionary = Perfil.config.jogos_visiveis.duplicate()
-			d[id] = on
-			Perfil.definir("jogos_visiveis", d)))
-	_toggle(v, "Abrir direto no último jogo usado", "abrir_ultimo")
-	v.add_child(_rot("Convite suave para parar depois de"))
-	var minutos := [3, 6, 10]
-	v.add_child(UI.seletor(["3 min", "6 min", "10 min"], maxi(0, minutos.find(int(Perfil.config.minutos_sessao))), func(i): Perfil.definir("minutos_sessao", minutos[i])))
-	v.add_child(UI.titulo_secao("🏰 Torre do Castelo"))
-	_toggle(v, "A torre pode cair (se desligado, ela só balança)", "torre_cai")
-	v.add_child(_rot("Tamanho da torre agora (1 = pequena, cai com sopro fraquinho)"))
-	v.add_child(UI.seletor(["1", "2", "3", "4", "5"], int(Perfil.config.nivel_torre) - 1, func(i): Perfil.definir("nivel_torre", i + 1)))
-	_toggle(v, "A torre cresce um nível a cada queda (pede mais força)", "torre_sobe_nivel")
-	v.add_child(_rot("Força do sopro para derrubar a torre maior"))
-	v.add_child(UI.seletor(["Fraca", "Média", "Forte"], Perfil.config.forca_derrubar, func(i): Perfil.definir("forca_derrubar", i)))
-	v.add_child(_nota("Sem microfone, a criança segura o dedo na torre: toque curto balança, segurar derruba."))
+func _mostrar_exemplo() -> void:
+	_exemplo.text = "Exemplo: \"%s\"" % _frase_exemplo()
 
 
-func _secao_microfone(c: VBoxContainer) -> void:
-	var v := _cartao(c, "🎤 Microfone (sopro e voz)")
-	v.add_child(_nota("O áudio nunca é gravado. O app só mede o som na hora."))
-	v.add_child(UI.interruptor("Usar o microfone", Perfil.config.microfone, func(on):
+func _secao_sopro(c: VBoxContainer) -> void:
+	var v := _cartao(c, "🎤 Sopro")
+	v.add_child(UI.interruptor("Usar o microfone para o sopro", Perfil.config.microfone, func(on):
 		Perfil.definir("microfone", on)
+		_caixa_sopro.visible = on
 		if on:
 			Microfone.pedir_permissao()
 			Microfone.ligar()
@@ -166,96 +96,99 @@ func _secao_microfone(c: VBoxContainer) -> void:
 			Microfone.desligar()))
 	_status_mic = _nota("")
 	v.add_child(_status_mic)
-	v.add_child(_rot("Sensibilidade do sopro"))
-	v.add_child(_nota("Mais para a direita = um sopro mais fraquinho já funciona. Bom para crianças que ainda não sabem soprar."))
-	v.add_child(UI.controle_sensibilidade())
-	v.add_child(_rot("Teste: sopre agora"))
+
+	_caixa_sopro = VBoxContainer.new()
+	_caixa_sopro.add_theme_constant_override("separation", 14)
+	_caixa_sopro.visible = Perfil.config.microfone
+	v.add_child(_caixa_sopro)
+	_caixa_sopro.add_child(_nota("Como é o sopro da criança? Comece no \"Fraco\" e vá para \"Forte\" conforme ela aprender."))
+	_caixa_sopro.add_child(UI.controle_sopro())
 	_medidor = UI.medidor_sopro()
-	v.add_child(_medidor)
-	_sopro_ok = _rot("")
-	v.add_child(_sopro_ok)
-	_ruido = _nota("")
-	v.add_child(_ruido)
-	var recal := UI.botao("Recalibrar ruído do ambiente", UI.CORES.superficie, 24, 80, UI.CORES.texto)
-	recal.pressed.connect(func(): Microfone.calibrar())
-	v.add_child(recal)
-	_toggle(v, "Contar voz da criança como resposta (só detecta som, não entende palavras)", "detectar_voz")
+	_caixa_sopro.add_child(_medidor)
+	_estado_sopro = UI.rotulo("", 24, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
+	_caixa_sopro.add_child(_estado_sopro)
+	var medir := UI.botao("Medir o barulho do ambiente", UI.CORES.superficie, 24, 80, UI.CORES.texto)
+	medir.pressed.connect(func(): Microfone.calibrar())
+	_caixa_sopro.add_child(medir)
+	_caixa_sopro.add_child(_nota("Use quando mudar de lugar. Desligue ventilador e ar-condicionado e fique em silêncio por 1 segundo."))
 
 
-func _secao_diario(c: VBoxContainer) -> void:
-	var v := _cartao(c, "📔 Diário")
-	v.add_child(_nota("O diário não dá notas e não compara. Serve para conversar com a criança e com a equipe."))
-	var fav := Perfil.palavras_favoritas()
-	if fav.size() > 0:
-		v.add_child(_rot("⭐ Palavras favoritas: " + ", ".join(fav)))
-	if Perfil.diario.is_empty():
-		v.add_child(_nota("Ainda não há brincadeiras registradas."))
-	var ultimas := Perfil.diario.slice(maxi(0, Perfil.diario.size() - 15))
-	ultimas.reverse()
-	for s in ultimas:
-		var p := PanelContainer.new()
-		p.add_theme_stylebox_override("panel", UI.caixa(UI.CORES.fundo, 20, 0))
-		var linha := VBoxContainer.new()
-		p.add_child(linha)
-		var minutos := maxi(1, int(s.get("duracao", 0)) / 60)
-		linha.add_child(_rot("%s · %s · %d min" % [String(s.data).replace("T", " ").left(16), Perfil.nome_do_jogo(s.jogo), minutos]))
-		var pal: Array = s.get("palavras", {}).keys()
-		if pal.size() > 0:
-			linha.add_child(_nota("Palavras: " + ", ".join(pal)))
-		linha.add_child(_nota("Voz detectada: %d · Ele respondeu: %d" % [int(s.get("voz", 0)), int(s.get("ele_respondeu", 0))]))
-		var nota := UI.campo_texto(s.get("nota", ""), "Nota (ex.: falou \"ba\" para banana)")
-		nota.text_changed.connect(func(t):
-			s["nota"] = t
-			Perfil.salvar_diario())
-		linha.add_child(nota)
-		v.add_child(p)
-	var copiar := UI.botao("📋 Copiar resumo em texto", UI.CORES.superficie, 24, 80, UI.CORES.texto)
-	copiar.pressed.connect(func():
-		DisplayServer.clipboard_set(Perfil.resumo_texto())
-		copiar.text = "✅ Copiado! Cole onde quiser enviar")
-	v.add_child(copiar)
+func _secao_torre(c: VBoxContainer) -> void:
+	var v := _cartao(c, "🏰 Torre do Castelo")
+	v.add_child(_nota("A torre começa pequena e cresce a cada queda, pedindo um sopro um pouco mais forte."))
+	var tamanho := _nota("Tamanho agora: %d" % int(Perfil.config.nivel_torre))
+	v.add_child(tamanho)
+	var recomecar := UI.botao("Voltar para a torre pequena", UI.CORES.superficie, 24, 80, UI.CORES.texto)
+	recomecar.pressed.connect(func():
+		Perfil.definir("nivel_torre", 1)
+		tamanho.text = "Tamanho agora: 1")
+	v.add_child(recomecar)
 
 
-func _secao_inicio(c: VBoxContainer) -> void:
-	var v := _cartao(c, "🔁 Configuração inicial")
-	v.add_child(_nota("Refaz os passos do começo: apelido, temas e sopro ou toque. O diário e os outros ajustes continuam."))
-	var refazer := UI.botao("Refazer configuração inicial", UI.CORES.superficie, 24, 80, UI.CORES.texto)
+func _secao_som(c: VBoxContainer) -> void:
+	var v := _cartao(c, "🔊 Som")
+	v.add_child(_nota("Volume"))
+	var vol := HSlider.new()
+	vol.min_value = 0.1
+	vol.max_value = 1.0
+	vol.step = 0.05
+	vol.value = Perfil.config.volume
+	vol.custom_minimum_size.y = 64
+	vol.focus_mode = Control.FOCUS_NONE
+	vol.value_changed.connect(func(x): Perfil.definir("volume", x))
+	vol.drag_ended.connect(func(_c): Fala.som("encaixe"))
+	v.add_child(vol)
+	v.add_child(UI.interruptor("Sons do jogo (bolhas, pedras)", Perfil.config.efeitos, func(on): Perfil.definir("efeitos", on)))
+
+
+func _secao_outros(c: VBoxContainer) -> void:
+	var v := _cartao(c, "⚙️ Outros")
+	var refazer := UI.botao("Refazer a configuração inicial", UI.CORES.superficie, 24, 80, UI.CORES.texto)
 	refazer.pressed.connect(func(): Jogo.ir_para("inicio", {"refazer": true}))
 	v.add_child(refazer)
 
-
-func _secao_privacidade(c: VBoxContainer) -> void:
-	var v := _cartao(c, "🔒 Privacidade")
-	v.add_child(_nota("Tudo fica guardado só neste aparelho, na área privada do app. Sem conta, sem nuvem, sem anúncios. Nada é enviado para fora sem você copiar e enviar."))
-	v.add_child(_nota("Permissões: microfone (só para o sopro e para detectar voz, sem gravar)."))
-	var apagar := UI.botao("Apagar todos os dados", UI.CORES.alerta, 26, 88, Color.WHITE)
-	var confirmar := ConfirmationDialog.new()
-	confirmar.dialog_text = "Apagar perfil, ajustes e diário?\nIsso não pode ser desfeito."
-	confirmar.ok_button_text = "Apagar"
-	confirmar.cancel_button_text = "Cancelar"
-	confirmar.confirmed.connect(func():
+	# apagar com confirmacao na propria tela (sem janela extra)
+	var apagar := UI.botao("Apagar todos os dados", UI.CORES.alerta, 24, 80, Color.WHITE)
+	var confirmar := HBoxContainer.new()
+	confirmar.add_theme_constant_override("separation", 12)
+	confirmar.visible = false
+	var sim := UI.botao("Sim, apagar", UI.CORES.alerta, 24, 80, Color.WHITE)
+	sim.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sim.pressed.connect(func():
 		Perfil.apagar_tudo()
 		Jogo.ir_para("inicio"))
-	add_child(confirmar)
-	apagar.pressed.connect(func(): confirmar.popup_centered())
+	var nao := UI.botao("Cancelar", UI.CORES.superficie, 24, 80, UI.CORES.texto)
+	nao.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nao.pressed.connect(func():
+		confirmar.visible = false
+		apagar.visible = true)
+	confirmar.add_child(nao)
+	confirmar.add_child(sim)
+	apagar.pressed.connect(func():
+		apagar.visible = false
+		confirmar.visible = true)
 	v.add_child(apagar)
+	v.add_child(confirmar)
+
+	v.add_child(_nota("Tudo fica só neste celular. Nenhum áudio é gravado. Este app é uma brincadeira de apoio à comunicação e não substitui o acompanhamento profissional."))
+	v.add_child(_nota("Créditos: pictogramas de Sergio Palao, ARASAAC (arasaac.org), Governo de Aragão, licença CC BY-NC-SA. Animais: Kenney (kenney.nl), CC0. Fontes: Nunito e Noto Color Emoji (SIL OFL)."))
 
 
-# ------------------------------------------------------------ teste do microfone ao vivo
+# ------------------------------------------------------------ medidor ao vivo
 
 func _process(_d: float) -> void:
-	if _medidor == null:
-		return
 	if Perfil.config.microfone and not Microfone.ativo and Microfone.tem_permissao():
 		Microfone.ligar()
+	var status := ""
 	if not Perfil.config.microfone:
-		_status_mic.text = "Desligado: os jogos funcionam por toque."
+		status = "Desligado: a criança brinca tocando na tela."
 	elif not Microfone.tem_permissao():
-		_status_mic.text = "Aguardando permissão do microfone. Sem ela, o jogo funciona por toque."
-	else:
-		_status_mic.text = "Ligado."
-	UI.atualizar_medidor(_medidor, _sopro_ok)
-	_ruido.text = "Ambiente barulhento: se o sopro falhar, use o toque." if Microfone.ambiente_barulhento() else ""
+		status = "Falta permitir o microfone. Sem ele, a criança brinca tocando na tela."
+	if _status_mic.text != status:
+		_status_mic.text = status
+		_status_mic.visible = status != ""
+	if _caixa_sopro.visible:
+		UI.atualizar_medidor(_medidor, _estado_sopro)
 
 
 func _exit_tree() -> void:

@@ -26,26 +26,25 @@ microfone (para o sopro) e com a de vibração. Você só precisa configurar sua
 
 | Tela | Quem usa | O que faz |
 |---|---|---|
-| Primeira abertura (`inicio`) | Responsável | Aviso ("não é terapia nem diagnóstico"), consentimento, apelido, prévia da voz, temas e escolha entre sopro e toque |
+| Primeira abertura (`inicio`) | Responsável | Aviso, consentimento, apelido, temas, sopro ou toque, medir o barulho do lugar e ajustar o sopro |
 | Hub (`hub`) | Criança | Ícones grandes dos jogos, sempre na mesma posição; o personagem cumprimenta |
 | Torre do Castelo (`torre`) | Criança | A torre já começa montada. **Sopro fraco** só balança; **sopro forte** derruba a torre e aparece um item dos temas escolhidos pelo responsável, que o personagem nomeia. Depois a torre se remonta sozinha. Sem microfone: segurar o dedo na torre (toque curto balança, segurar derruba) |
 | Bolhas de Sabão (`bolhas`) | Criança | Soprar no microfone **ou** segurar a varinha ✨; tocar na bolha revela uma imagem |
-| Área dos responsáveis (`responsaveis`) | Responsável | Perfil, fala, conforto sensorial, jogos, microfone com teste ao vivo, diário e privacidade |
+| Configurações (`responsaveis`) | Responsável | Apelido e temas, fala, sopro com medidor, torre, som |
 
-- **Portão dos responsáveis:** segure o cadeado 🔒 por **3 segundos**.
-  - No **hub**, abre a área dos responsáveis completa.
-  - **Dentro dos jogos**, abre os **ajustes rápidos**: tipo de fala (só a palavra, com artigo ou frase
-    curta), sensibilidade do microfone com medidor ao vivo e, na torre, o tamanho atual e a força
-    para derrubar. O jogo fica parado enquanto o painel está aberto.
-- **Refazer configuração inicial:** na área dos responsáveis (apelido, temas, sopro ou toque).
-- **Torre em níveis:** começa com 1 fileira e cai com um sopro bem fraquinho; a cada queda volta
-  um nível maior (até 5) e pede mais força. Dá para escolher o nível ou travar o crescimento.
-- **Microfone para quem ainda não sabe soprar:** mede o barulho do ambiente, conta como sopro
-  qualquer som um pouco acima dele e calcula a força em decibéis. Sensibilidade de 1 a 10.
-- **Bolhas:** cada sopro solta logo uma rajada de 4 bolhas espalhadas; soprando mais forte saem mais.
-  A imagem só aparece depois de a criança estourar algumas bolhas vazias.
-- **Botão 👍 discreto nos jogos:** o responsável marca "ele respondeu" (gesto, olhar). Isso vai
-  para o diário e **não muda** a reação do jogo.
+- **Cadeado 🔒 (segurar 3 segundos):**
+  - No **hub**, abre as **Configurações**: apelido e temas, como o personagem fala, sopro
+    (Fraco ↔ Forte, com medidor ao vivo e botão para medir o barulho do ambiente), torre
+    (voltar para a torre pequena), som e "refazer a configuração inicial".
+  - **Dentro dos jogos**, abre os **Ajustes**: como o personagem fala e o sopro, sem sair do jogo.
+- **Configuração inicial:** aviso, apelido e temas, sopro ou toque, **medir o barulho do lugar**
+  (desligar ventilador e ar-condicionado) e **ajustar o sopro** com a criança soprando.
+- **Sopro "Fraco ↔ Forte":** no "fraco" o celular fica bem sensível (para quem ainda não sabe
+  soprar), mas também capta ventilador e ar-condicionado. No "forte" precisa de mais sopro.
+- **Torre em níveis:** começa com 1 fileira e cai com um sopro bem fraquinho; a cada queda ganha
+  uma fileira e pede mais força, até chegar ao topo da tela (15 fileiras).
+- **Bolhas:** cada sopro solta logo 4 bolhas espalhadas; soprando mais forte saem mais. A imagem
+  só aparece depois de a criança estourar algumas bolhas vazias.
 - **Fim suave:** depois de alguns minutos (3, 6 ou 10, a configurar), o personagem convida
   "De novo?" com dois botões grandes (🔁 continuar ou 🏠 casa). O jogo nunca fecha à força.
 - **Botão voltar do Android:** no jogo, volta ao hub. No hub, não faz nada (modo criança travado).
@@ -110,12 +109,13 @@ apareçam iguais em qualquer celular (as duas fontes são livres, licença SIL O
 ```
 autoload/
   ui.gd          paleta, fontes e construtores de botões, painéis e interruptores
-  perfil.gd      perfil da criança, ajustes, temas e diário (salvos só no aparelho, em user://)
+  perfil.gd      perfil da criança, ajustes e temas (salvos só no aparelho, em user://)
   fala.gd        voz única (síntese pt-BR), texto e CICLO DE COMUNICAÇÃO (modelo, pausa, aceitação)
   microfone.gd   sopro e presença de voz em tempo real, SEM gravar áudio
   jogo.gd        catálogo modular de jogos e navegação
 scripts/
-  base_jogo.gd   "contrato" de todo jogo: casa, balão, personagem, 👍, fim suave, diário
+  base_jogo.gd   "contrato" de todo jogo: casa, balão, personagem, cadeado de ajustes, fim suave
+  ajustes_rapidos.gd  painel de ajustes dentro do jogo
   torre.gd       Jogo 1: Torre do Castelo (soprar para derrubar)
   bolhas.gd      Jogo 2: Bolhas de Sabão
   personagem.gd  personagem desenhado por código (sem boca animada, só poses)
@@ -134,23 +134,21 @@ data/
 
 ## O que do GDD já está no protótipo e o que falta
 
-**Já está:** hub modular; primeira sessão guiada com consentimento; perfil com apelido, grafia para
-a voz, temas, nível de apoio, tempo de pausa, repetição única do modelo e texto ligado/grande; voz
-única por síntese pt-BR com texto sempre junto (e som neutro quando o aparelho não tem voz);
-ciclo modelo → pausa → aceitação igual para qualquer resposta; personagem com 5 estados;
-Torre do Castelo (sopro fraco balança, sopro forte derruba e revela um item de interesse, força
-para derrubar ajustável em fraco/médio/forte, alternativa por toque, opção "nunca cai", convite após 20 s parado); Bolhas (sopro com sensibilidade em 3 níveis,
-calibração do ruído, teste ao vivo, varinha por toque, revelação de imagem, bolhas mais lentas quando
-há muitas, orientação do microfone uma vez por dia); conforto sensorial (volume, efeitos, reduzir
-movimento, tema calmo, vibração); detecção opcional de voz (só presença de som); diário com palavras
-favoritas, notas e "copiar resumo"; apagar todos os dados; botão voltar do Android tratado.
+**Já está:** hub modular; primeira sessão guiada com consentimento, medição do ambiente e ajuste
+do sopro; apelido e temas; tipo de fala (só a palavra, com artigo, frase curta) mudável dentro do
+jogo; voz única por síntese pt-BR com texto sempre junto; ciclo modelo → pausa → aceitação igual
+para qualquer resposta; personagem com 5 estados; Torre do Castelo em níveis (de 1 a 15 fileiras,
+cada nível pede mais sopro) com alternativa por toque; Bolhas (rajada a cada sopro, quantidade
+proporcional à força, varinha por toque); microfone sem gravação, com calibração do ambiente e
+controle Fraco ↔ Forte; volume e sons; apagar todos os dados; botão voltar do Android tratado.
+
+**Retirado a pedido:** o diário de sessões (o responsável anota no papel, se quiser).
 
 **Falta (próximas etapas):**
 - Fotos da câmera e da galeria com recorte e rótulo (por enquanto, as imagens vêm de `assets/imagens/`).
 - Vários perfis de criança no mesmo aparelho.
 - Falas fixas pré-geradas em áudio (o suporte já existe em `assets/falas/`; faltam os arquivos).
 - Música de fundo (desligada por padrão no GDD).
-- Exportar o diário em PDF (hoje: copiar o resumo em texto).
 - Testes com famílias e revisão por fonoaudiólogos (GDD seção 17).
 
 > Este app é uma brincadeira de apoio à comunicação. Ele não diagnostica, não trata e não substitui
