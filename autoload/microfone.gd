@@ -12,7 +12,9 @@ extends Node
 ##  - o microfone fica surdo enquanto o personagem fala (e um pouquinho depois), para a
 ##    voz do proprio app no alto-falante nao contar como sopro;
 ##  - o som precisa durar um pouco (TEMPO_CONFIRMAR) para contar: tosse, porta e estalo nao;
-##  - o ruido do ambiente e reaprendido devagar (ventilador ligado depois da medicao).
+##  - o ruido do ambiente e medido o tempo todo pelos momentos mais quietos dos ultimos
+##    3 segundos. Sopros tem pausas entre eles, entao nunca viram "ruido"; e se o ruido
+##    subir por engano, ele volta sozinho assim que houver um pouco de silencio.
 
 signal sopro(forca: float)   # 0..1, emitido a cada quadro enquanto ha sopro
 
@@ -37,14 +39,19 @@ var _bus := -1
 var _captura: AudioEffectCapture
 var _player: AudioStreamPlayer
 var _calibrando := 0.0
-var _amostras_ruido: Array[float] = []
 var _voz_ate := 0.0
 var _tempo_soprando := 0.0
 var _folga := 0.0
 var _surdo_ate := 0.0
 var _relogio := 0.0
-## Um "sopro" que dura mais que isso sem parar e barulho continuo (ventilador, TV).
-const SOPRO_MAXIMO := 4.0
+## Janela (s) usada para medir o ruido do ambiente e qual "fatia" mais quieta dela vale.
+const JANELA_RUIDO := 3.0
+const PERCENTIL_RUIDO := 0.15
+const RUIDO_MINIMO := 0.0015
+var _janela_rms: Array[float] = []
+var _janela_dt: Array[float] = []
+var _janela_total := 0.0
+var _proxima_estimativa := 0.0
 
 # diagnostico e recuperacao (no Android a entrada de audio as vezes nao inicia de primeira)
 var amostras_por_segundo := 0
@@ -132,8 +139,10 @@ func desligar() -> void:
 
 ## Mede o ruido do ambiente durante ~1 segundo (pedir silencio nesse momento).
 func calibrar() -> void:
-	_calibrando = 1.0
-	_amostras_ruido.clear()
+	_calibrando = 0.8
+	_janela_rms.clear()
+	_janela_dt.clear()
+	_janela_total = 0.0
 
 
 func calibrando() -> bool:
@@ -220,38 +229,53 @@ func _analisar(rms: float, delta: float) -> void:
 	# medidor: sobe rapido e desce um pouco mais devagar
 	nivel = lerpf(nivel, rms, 0.6 if rms > nivel else 0.35)
 
-	if _calibrando > 0.0:
-		_calibrando -= delta
-		_amostras_ruido.append(rms)
-		if _calibrando <= 0.0 and _amostras_ruido.size() > 0:
-			_amostras_ruido.sort()
-			# mediana: um barulho isolado durante a calibracao nao estraga a medida
-			ruido = maxf(_amostras_ruido[_amostras_ruido.size() / 2], 0.0015)
-		return
-
 	if _app_falando():
 		_surdo_ate = _relogio + SURDO_DEPOIS_DA_FALA
+	# a voz do app nao entra na medida do ruido do ambiente
+	if not surdo():
+		_guardar_na_janela(rms, delta)
+
+	if _calibrando > 0.0:
+		_calibrando -= delta
+		if _calibrando <= 0.0:
+			_estimar_ruido()
+		return
+
+	if _relogio >= _proxima_estimativa:
+		_proxima_estimativa = _relogio + 0.2
+		_estimar_ruido()
 
 	# a duracao e medida com o som instantaneo (estalo curto nao "arrasta" o medidor)
 	var f := _forca_de(rms)
 	if f > 0.0:
 		_tempo_soprando += delta
 		_folga = FOLGA
-		if _tempo_soprando > SOPRO_MAXIMO:
-			# som que nao para e barulho do ambiente: reaprende o ruido rapido
-			ruido = lerpf(ruido, rms, 0.05)
 	else:
 		_folga -= delta
 		if _folga <= 0.0:
 			_tempo_soprando = 0.0
-		# sem sopro e sem o app falando: reaprende o ruido do ambiente devagar
-		if not surdo():
-			var rapido := 0.02 if rms < ruido else 0.003
-			ruido = maxf(lerpf(ruido, rms, rapido), 0.0015)
 	# so conta como sopro depois de durar um pouquinho
 	if f > 0.0 and _tempo_soprando >= TEMPO_CONFIRMAR:
 		sopro.emit(f)
 		_voz_ate = _relogio + 0.4
+
+
+func _guardar_na_janela(rms: float, delta: float) -> void:
+	_janela_rms.append(rms)
+	_janela_dt.append(delta)
+	_janela_total += delta
+	while _janela_total > JANELA_RUIDO and _janela_rms.size() > 1:
+		_janela_total -= _janela_dt.pop_front()
+		_janela_rms.pop_front()
+
+
+## Ruido do ambiente = um dos momentos mais quietos da janela (nao a media).
+func _estimar_ruido() -> void:
+	if _janela_rms.is_empty():
+		return
+	var ordenado := _janela_rms.duplicate()
+	ordenado.sort()
+	ruido = maxf(ordenado[int(ordenado.size() * PERCENTIL_RUIDO)], RUIDO_MINIMO)
 
 
 ## Se o microfone fica 1,5 s sem mandar som nenhum (nem o chiado minimo do ambiente),
@@ -259,12 +283,12 @@ func _analisar(rms: float, delta: float) -> void:
 func _vigiar(delta: float, chegou_som: bool) -> void:
 	if chegou_som:
 		_sem_som = 0.0
+		reinicios = 0  # voltou a funcionar: pode tentar de novo se travar mais tarde
 		return
 	_sem_som += delta
 	if _sem_som > 1.5 and reinicios < MAX_REINICIOS:
 		reinicios += 1
 		_iniciar_captura()
-		calibrar()
 
 
 ## Texto simples para o responsavel ver se o microfone esta funcionando.
