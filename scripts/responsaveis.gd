@@ -107,6 +107,7 @@ func _secao_sopro(c: VBoxContainer) -> void:
 	_caixa_sopro.add_child(_medidor)
 	_estado_sopro = UI.rotulo("", 24, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 	_caixa_sopro.add_child(_estado_sopro)
+	_caixa_sopro.add_child(UI.diagnostico_mic())
 	var medir := UI.botao("Medir o barulho do ambiente", UI.CORES.superficie, 24, 80, UI.CORES.texto)
 	medir.pressed.connect(func(): Microfone.calibrar())
 	_caixa_sopro.add_child(medir)

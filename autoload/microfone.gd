@@ -29,23 +29,43 @@ var _calibrando := 0.0
 var _amostras_ruido: Array[float] = []
 var _voz_ate := 0.0
 
+# diagnostico e recuperacao (no Android a entrada de audio as vezes nao inicia de primeira)
+var amostras_por_segundo := 0
+var reinicios := 0
+var _amostras_contadas := 0
+var _janela := 0.0
+var _sem_som := 0.0
+const MAX_REINICIOS := 5
+
 
 func _ready() -> void:
 	_bus = AudioServer.bus_count
 	AudioServer.add_bus()
 	AudioServer.set_bus_name(_bus, "Microfone")
-	AudioServer.set_bus_mute(_bus, true)  # nunca toca o som do microfone no alto-falante
+	# som do microfone praticamente zerado no alto-falante (o efeito de captura le antes do volume)
+	AudioServer.set_bus_volume_db(_bus, -80.0)
 	_captura = AudioEffectCapture.new()
 	AudioServer.add_bus_effect(_bus, _captura)
 	_player = AudioStreamPlayer.new()
 	_player.bus = "Microfone"
 	add_child(_player)
+	# assim que o Android conceder a permissao, liga o microfone na hora
+	get_tree().on_request_permissions_result.connect(_ao_responder_permissao)
+
+
+func _ao_responder_permissao(permissao: String, concedida: bool) -> void:
+	if concedida and permissao.contains("RECORD_AUDIO") and Perfil.config.microfone:
+		reiniciar()
 
 
 func tem_permissao() -> bool:
 	if OS.get_name() != "Android":
 		return true
-	return "android.permission.RECORD_AUDIO" in OS.get_granted_permissions()
+	# aceita o nome completo ou curto da permissao
+	for p in OS.get_granted_permissions():
+		if String(p).contains("RECORD_AUDIO"):
+			return true
+	return false
 
 
 ## Pede a permissao (chamado so pela configuracao, em momento claro - GDD 11.5).
@@ -56,15 +76,34 @@ func pedir_permissao() -> void:
 
 ## Liga a escuta. Retorna false se nao for possivel (sem permissao ou desligado no perfil).
 func ligar() -> bool:
-	if not Perfil.config.microfone or not tem_permissao():
+	if not Perfil.config.microfone:
 		desligar()
 		return false
+	if not tem_permissao():
+		# pede a permissao; quando o Android responder, _ao_responder_permissao liga o microfone
+		desligar()
+		pedir_permissao()
+		return false
 	if not ativo:
-		_player.stream = AudioStreamMicrophone.new()
-		_player.play()
+		_iniciar_captura()
 		ativo = true
+		reinicios = 0
 		calibrar()
 	return true
+
+
+func _iniciar_captura() -> void:
+	_player.stop()
+	_captura.clear_buffer()
+	_player.stream = AudioStreamMicrophone.new()
+	_player.play()
+	_sem_som = 0.0
+
+
+## Desliga e liga de novo a captura (usado quando nao chega som).
+func reiniciar() -> void:
+	desligar()
+	ligar()
 
 
 func desligar() -> void:
@@ -121,16 +160,25 @@ func voz_agora() -> bool:
 
 func _process(delta: float) -> void:
 	if not ativo:
+		amostras_por_segundo = 0
 		return
+	_janela += delta
+	if _janela >= 1.0:
+		amostras_por_segundo = int(_amostras_contadas / _janela)
+		_amostras_contadas = 0
+		_janela = 0.0
 	var n := _captura.get_frames_available()
 	if n <= 0:
+		_vigiar(delta, false)
 		return
 	var buf := _captura.get_buffer(n)
+	_amostras_contadas += n
 	var soma := 0.0
 	for f in buf:
 		var s := (f.x + f.y) * 0.5
 		soma += s * s
 	var rms := sqrt(soma / buf.size())
+	_vigiar(delta, rms > 0.0)
 	# sobe rapido e desce devagar: o sopro fraco e irregular nao "pisca"
 	nivel = lerpf(nivel, rms, 0.6 if rms > nivel else 0.2)
 
@@ -147,6 +195,31 @@ func _process(delta: float) -> void:
 	if f > 0.0:
 		sopro.emit(f)
 		_voz_ate = Time.get_ticks_msec() / 1000.0 + 0.4
+
+
+## Se o microfone fica 1,5 s sem mandar som nenhum (nem o chiado minimo do ambiente),
+## a entrada provavelmente nao iniciou: tenta de novo algumas vezes.
+func _vigiar(delta: float, chegou_som: bool) -> void:
+	if chegou_som:
+		_sem_som = 0.0
+		return
+	_sem_som += delta
+	if _sem_som > 1.5 and reinicios < MAX_REINICIOS:
+		reinicios += 1
+		_iniciar_captura()
+		calibrar()
+
+
+## Texto simples para o responsavel ver se o microfone esta funcionando.
+func diagnostico() -> String:
+	var perm := "sim" if tem_permissao() else "NÃO"
+	var recebendo := "sim" if ativo and _sem_som < 1.0 and amostras_por_segundo > 0 else "não"
+	var t := "Permissão: %s · Recebendo som: %s" % [perm, recebendo]
+	if ativo and recebendo == "sim":
+		t += " · Som agora: %+d dB" % int(round(db_acima_do_ruido()))
+	if reinicios >= MAX_REINICIOS and recebendo == "não":
+		t += "\nO celular não está mandando som. Feche o app, abra de novo e permita o microfone."
+	return t
 
 
 ## Ruido continuo alto? (para sugerir ao responsavel usar o toque - GDD 11.5)

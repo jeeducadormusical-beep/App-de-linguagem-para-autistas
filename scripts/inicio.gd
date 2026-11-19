@@ -144,6 +144,7 @@ func _passo_forca() -> void:
 	_coluna.add_child(_medidor)
 	_estado = UI.rotulo("", 26, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 	_coluna.add_child(_estado)
+	_coluna.add_child(UI.diagnostico_mic())
 	var seguir := UI.botao("Continuar", UI.CORES.primaria, 32)
 	seguir.pressed.connect(func(): _mostrar_passo(5))
 	_coluna.add_child(seguir)

@@ -398,3 +398,17 @@ func coluna_rolavel(pai: Control) -> VBoxContainer:
 	c.add_theme_constant_override("separation", 14)
 	r.add_child(c)
 	return c
+
+
+## Linha de diagnostico do microfone (atualiza sozinha 2 vezes por segundo).
+func diagnostico_mic() -> Label:
+	var l := rotulo("", 20, CORES.texto_suave, HORIZONTAL_ALIGNMENT_LEFT)
+	var t := Timer.new()
+	t.wait_time = 0.5
+	t.autostart = true
+	t.timeout.connect(func():
+		var txt := Microfone.diagnostico()
+		if l.text != txt:
+			l.text = txt)
+	l.add_child(t)
+	return l

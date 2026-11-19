@@ -46,13 +46,27 @@ func _ready() -> void:
 	# ---- sopro
 	v.add_child(UI.titulo_secao("🎤 Sopro da criança"))
 	if not Perfil.config.microfone:
-		v.add_child(_nota("O microfone está desligado: a criança brinca tocando na tela. Para ligar, use \"Mais configurações\"."))
+		v.add_child(_nota("O microfone está desligado: a criança brinca tocando na tela."))
+		var ligar := UI.botao("🎤 Ligar o microfone", UI.CORES.primaria, 24, 80)
+		ligar.pressed.connect(func():
+			Perfil.definir("microfone", true)
+			Microfone.ligar()
+			# reabre o painel ja com o medidor de sopro
+			var novo := Control.new()
+			novo.set_script(get_script())
+			novo.id_jogo = id_jogo
+			for c in fechado.get_connections():
+				novo.fechado.connect(c.callable)
+			get_parent().add_child(novo)
+			queue_free())
+		v.add_child(ligar)
 	else:
 		v.add_child(UI.controle_sopro())
 		_medidor = UI.medidor_sopro()
 		v.add_child(_medidor)
 		_estado_sopro = UI.rotulo("", 24, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 		v.add_child(_estado_sopro)
+		v.add_child(UI.diagnostico_mic())
 		var medir := UI.botao("Medir o barulho do ambiente", UI.CORES.superficie, 22, 72, UI.CORES.texto)
 		medir.pressed.connect(func(): Microfone.calibrar())
 		v.add_child(medir)
