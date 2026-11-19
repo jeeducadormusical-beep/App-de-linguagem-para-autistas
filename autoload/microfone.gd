@@ -1,20 +1,25 @@
 extends Node
-## Autoload "Microfone": mede sopro e presenca de voz EM TEMPO REAL. Nenhum audio e gravado
-## ou guardado: so usamos medidas momentaneas (intensidade e formato do som) - GDD 11 e 15.
+## Autoload "Microfone": mede o sopro EM TEMPO REAL, em decibeis. Nenhum audio e gravado
+## ou guardado: so usamos a intensidade do som naquele instante (GDD 11 e 15).
 ##
-## Como diferencia sopro de voz (versao simples):
-##  - sopro = som de ar, parecido com ruido -> muitas "passagens por zero" (ZCR alto)
-##  - voz   = som periodico (tem tom)       -> poucas passagens por zero (ZCR baixo)
+## Pensado para criancas que ainda nao sabem soprar direito:
+##  - o app mede o ruido do ambiente ao abrir o jogo (calibracao);
+##  - qualquer som um pouco acima desse ruido ja conta como sopro (soprar perto do
+##    microfone gera um "ronco" grave, entao NAO exigimos som de ar/chiado);
+##  - a forca do sopro (0 a 1) cresce em decibeis acima do limiar, entao um sopro
+##    fraquinho ja da uma forca pequena, e um sopro forte chega a 1.
 
 signal sopro(forca: float)   # 0..1, emitido a cada quadro enquanto ha sopro
 
-const LIMIAR_ZCR := 0.16
-## Multiplicador sobre o ruido ambiente, por sensibilidade (baixa, media, alta).
-const FATOR := [5.0, 3.2, 2.0]
+## Sensibilidade 1..10 -> quantos dB acima do ruido o som precisa estar para contar.
+## 10 = muito sensivel (3 dB), 1 = pouco sensivel (16 dB).
+const DB_MIN := 3.0
+const DB_MAX := 16.0
+## Faixa (em dB acima do limiar) que vai de forca 0 ate forca 1.
+const FAIXA_DB := 20.0
 
-var nivel := 0.0          # intensidade atual (RMS suavizado)
-var zcr := 0.0            # taxa de passagens por zero atual
-var ruido := 0.01         # ruido ambiente calibrado
+var nivel := 0.0          # intensidade atual (RMS suavizado, 0..1)
+var ruido := 0.005        # ruido ambiente calibrado (RMS)
 var ativo := false
 
 var _bus := -1
@@ -43,7 +48,7 @@ func tem_permissao() -> bool:
 	return "android.permission.RECORD_AUDIO" in OS.get_granted_permissions()
 
 
-## Pede a permissao (chamado so pela area dos responsaveis, em momento claro - GDD 11.5).
+## Pede a permissao (chamado so pela configuracao, em momento claro - GDD 11.5).
 func pedir_permissao() -> void:
 	if OS.get_name() == "Android" and not tem_permissao():
 		OS.request_permission("android.permission.RECORD_AUDIO")
@@ -69,26 +74,47 @@ func desligar() -> void:
 	nivel = 0.0
 
 
-## Recalibra o ruido ambiente durante ~1 segundo.
+## Mede o ruido do ambiente durante ~1 segundo (pedir silencio nesse momento).
 func calibrar() -> void:
 	_calibrando = 1.0
 	_amostras_ruido.clear()
 
 
+func calibrando() -> bool:
+	return _calibrando > 0.0
+
+
+static func para_db(rms: float) -> float:
+	return 20.0 * log(maxf(rms, 0.00001)) / log(10.0)
+
+
+## Quantos dB acima do ruido o som precisa chegar, conforme a sensibilidade (1..10).
+func db_necessarios() -> float:
+	var s := clampf(float(Perfil.config.sensibilidade), 1.0, 10.0)
+	return lerpf(DB_MAX, DB_MIN, (s - 1.0) / 9.0)
+
+
+## Limiar em RMS (para o medidor).
 func limiar() -> float:
-	return maxf(ruido * FATOR[clampi(int(Perfil.config.sensibilidade), 0, 2)], 0.02)
+	return maxf(ruido, 0.0015) * pow(10.0, db_necessarios() / 20.0)
 
 
-## Existe sopro agora? Retorna forca 0..1 (0 = sem sopro).
+## Intensidade atual em dB acima do ruido ambiente (pode ser negativa).
+func db_acima_do_ruido() -> float:
+	return para_db(nivel) - para_db(maxf(ruido, 0.0015))
+
+
+## Forca do sopro agora: 0 (nada) ate 1 (sopro forte).
 func forca_sopro() -> float:
 	if not ativo or _calibrando > 0.0:
 		return 0.0
-	if nivel > limiar() and zcr > LIMIAR_ZCR:
-		return clampf((nivel - limiar()) / (limiar() * 3.0), 0.1, 1.0)
-	return 0.0
+	var acima := db_acima_do_ruido() - db_necessarios()
+	if acima <= 0.0:
+		return 0.0
+	return clampf(0.05 + acima / FAIXA_DB, 0.05, 1.0)
 
 
-## Houve voz/vocalizacao recentemente? (so presenca de som, nunca julga a palavra)
+## Houve som da crianca recentemente? (so presenca de som, nunca julga a palavra)
 func voz_agora() -> bool:
 	return ativo and Perfil.config.detectar_voz and Time.get_ticks_msec() / 1000.0 < _voz_ate
 
@@ -101,32 +127,25 @@ func _process(delta: float) -> void:
 		return
 	var buf := _captura.get_buffer(n)
 	var soma := 0.0
-	var cruzamentos := 0
-	var anterior := 0.0
 	for f in buf:
 		var s := (f.x + f.y) * 0.5
 		soma += s * s
-		if (s >= 0.0) != (anterior >= 0.0):
-			cruzamentos += 1
-		anterior = s
 	var rms := sqrt(soma / buf.size())
-	nivel = lerpf(nivel, rms, 0.5)
-	zcr = lerpf(zcr, float(cruzamentos) / buf.size(), 0.5)
+	# sobe rapido e desce devagar: o sopro fraco e irregular nao "pisca"
+	nivel = lerpf(nivel, rms, 0.6 if rms > nivel else 0.2)
 
 	if _calibrando > 0.0:
 		_calibrando -= delta
 		_amostras_ruido.append(rms)
 		if _calibrando <= 0.0 and _amostras_ruido.size() > 0:
-			var total := 0.0
-			for a in _amostras_ruido:
-				total += a
-			ruido = maxf(total / _amostras_ruido.size(), 0.004)
+			_amostras_ruido.sort()
+			# mediana: um barulho isolado durante a calibracao nao estraga a medida
+			ruido = maxf(_amostras_ruido[_amostras_ruido.size() / 2], 0.0015)
 		return
 
 	var f := forca_sopro()
 	if f > 0.0:
 		sopro.emit(f)
-	elif nivel > limiar() and zcr < LIMIAR_ZCR:
 		_voz_ate = Time.get_ticks_msec() / 1000.0 + 0.4
 
 

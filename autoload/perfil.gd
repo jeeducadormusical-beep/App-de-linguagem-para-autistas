@@ -23,10 +23,12 @@ const PADRAO := {
 	"tema_calmo": false,
 	"vibrar": false,
 	"microfone": false,
-	"sensibilidade": 1,        # 0 baixa, 1 media, 2 alta
+	"sensibilidade": 7,        # 1 (pouco sensivel) ate 10 (muito sensivel)
 	"detectar_voz": false,
 	"torre_cai": true,
 	"forca_derrubar": 1,       # sopro para derrubar a torre: 0 fraco, 1 medio, 2 forte
+	"nivel_torre": 1,          # 1..5: a torre comeca pequena e cresce a cada queda
+	"torre_sobe_nivel": true,  # se desligado, a torre fica sempre no mesmo nivel
 	"jogos_visiveis": {"torre": true, "bolhas": true},
 	"abrir_ultimo": false,
 	"ultimo_jogo": "",
@@ -58,6 +60,9 @@ func _carregar() -> void:
 		return
 	for k in PADRAO:
 		config[k] = cfg.get_value("perfil", k, PADRAO[k])
+	# versoes antigas guardavam a sensibilidade como 0, 1 ou 2
+	if int(config.sensibilidade) <= 2:
+		config.sensibilidade = PADRAO.sensibilidade
 
 
 func salvar() -> void:

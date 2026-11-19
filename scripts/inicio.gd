@@ -8,7 +8,8 @@ var _passo := 0
 
 
 func _ready() -> void:
-	if Perfil.config.consentimento:
+	var refazer: bool = Jogo.parametros.get("refazer", false)
+	if Perfil.config.consentimento and not refazer:
 		var destino := "hub"
 		if Perfil.config.abrir_ultimo and Perfil.config.ultimo_jogo != "":
 			destino = Perfil.config.ultimo_jogo
@@ -23,7 +24,7 @@ func _ready() -> void:
 	_coluna.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_coluna.add_theme_constant_override("separation", 22)
 	rolagem.add_child(_coluna)
-	_mostrar_passo(0)
+	_mostrar_passo(1 if refazer else 0)
 
 
 func _limpar() -> void:

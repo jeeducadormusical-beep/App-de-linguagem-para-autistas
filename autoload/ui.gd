@@ -305,3 +305,61 @@ func seletor_temas() -> GridContainer:
 			Perfil.definir("temas", lista))
 		g.add_child(b)
 	return g
+
+
+## Controle de sensibilidade do microfone (1 a 10), com rotulos simples.
+func controle_sensibilidade() -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	var pouco := rotulo("Pouco", 22, CORES.texto_suave)
+	pouco.autowrap_mode = TextServer.AUTOWRAP_OFF
+	h.add_child(pouco)
+	var s := HSlider.new()
+	s.min_value = 1
+	s.max_value = 10
+	s.step = 1
+	s.value = Perfil.config.sensibilidade
+	s.custom_minimum_size.y = 64
+	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(s)
+	var muito := rotulo("Muito", 22, CORES.texto_suave)
+	muito.autowrap_mode = TextServer.AUTOWRAP_OFF
+	h.add_child(muito)
+	var n := rotulo(str(int(s.value)), 26, CORES.primaria_escura)
+	n.autowrap_mode = TextServer.AUTOWRAP_OFF
+	n.custom_minimum_size.x = 40
+	h.add_child(n)
+	s.value_changed.connect(func(x):
+		n.text = str(int(x))
+		Perfil.definir("sensibilidade", int(x)))
+	return h
+
+
+## Barra que mostra o sopro ao vivo.
+func medidor_sopro() -> ProgressBar:
+	var m := ProgressBar.new()
+	m.max_value = 1.0
+	m.show_percentage = false
+	m.custom_minimum_size.y = 40
+	m.add_theme_stylebox_override("background", caixa(CORES.borda, 20, 0))
+	m.add_theme_stylebox_override("fill", caixa(CORES.ceu, 20, 0))
+	return m
+
+
+## Atualiza a barra: azul-claro = som abaixo do limiar; verde = conta como sopro.
+func atualizar_medidor(m: ProgressBar, estado: Label) -> void:
+	if not Microfone.ativo:
+		m.value = 0.0
+		estado.text = "Microfone desligado ou sem permissão."
+		return
+	if Microfone.calibrando():
+		m.value = 0.0
+		estado.text = "Medindo o barulho do ambiente… fique em silêncio."
+		return
+	var total := Microfone.db_necessarios() + Microfone.FAIXA_DB
+	m.value = clampf(Microfone.db_acima_do_ruido() / total, 0.0, 1.0)
+	var f := Microfone.forca_sopro()
+	var cor: Color = CORES.menta if f > 0.0 else CORES.ceu
+	m.add_theme_stylebox_override("fill", caixa(cor, 20, 0))
+	estado.text = "🫧 Sopro! Força: %d%%" % int(f * 100) if f > 0.0 else "Sopre no microfone (parte de baixo do celular)."

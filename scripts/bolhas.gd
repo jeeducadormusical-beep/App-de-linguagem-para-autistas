@@ -4,7 +4,15 @@ extends "res://scripts/base_jogo.gd"
 ## imagem dos temas e o personagem fala o nome. Nada e "errado": bolha que chega ao topo
 ## estoura sozinha, sem revelar nada.
 
-const MAX_BOLHAS := 14
+const MAX_BOLHAS := 18
+## Cada sopro (ou toque na varinha) solta logo uma rajada de bolhas para a crianca ter opcoes.
+const RAJADA := 4
+## Bolhas por segundo enquanto sopra: sopro fraquinho -> poucas, sopro forte -> muitas.
+const TAXA_FRACA := 1.5
+const TAXA_FORTE := 10.0
+## Chance de uma bolha esconder uma imagem, e quantas bolhas "vazias" estourar antes de revelar.
+const CHANCE_IMAGEM := 0.4
+const POPS_ANTES_DE_REVELAR := 2
 const CORES_BOLHA := ["BFDCF7", "CBB8F0", "BFE6C8", "FFE29A", "FFC9A8"]
 
 
@@ -46,6 +54,8 @@ var _ultimo_surgem := -100.0
 var _pops_vazios := 0
 var _convidou_inativo := false
 var _relogio := 0.0
+var _ultimo_sopro := -100.0
+var _pops_desde_revelar := 0
 
 
 func _ready() -> void:
@@ -64,7 +74,7 @@ func _montar(a: Control) -> void:
 	varinha.button_down.connect(func():
 		_segurando = true
 		registrar_toque()
-		_criar_bolha(varinha.position + Vector2(85, 0)))
+		_rajada(varinha.position + Vector2(85, 0)))
 	varinha.button_up.connect(func(): _segurando = false)
 	a.add_child(varinha)
 
@@ -80,8 +90,12 @@ func _recomecar() -> void:
 
 func _ao_soprar(forca: float) -> void:
 	tempo_sem_toque = 0.0
-	# mais forca e mais tempo de sopro = mais bolhas (com limite)
-	_acumulado += forca * get_process_delta_time() * 7.0
+	# comecou a soprar agora: ja solta uma rajada de bolhas
+	if _relogio - _ultimo_sopro > 0.4:
+		_rajada_espalhada()
+	_ultimo_sopro = _relogio
+	# enquanto sopra: mais forca = mais bolhas por segundo (com limite na tela)
+	_acumulado += lerpf(TAXA_FRACA, TAXA_FORTE, forca) * get_process_delta_time()
 	if _relogio - _ultimo_surgem > 15.0 and not Fala.ocupado():
 		_ultimo_surgem = _relogio
 		Fala.dizer("bolhas", "surgem")
@@ -89,16 +103,17 @@ func _ao_soprar(forca: float) -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if ajustes_abertos:
+		return
 	_relogio += delta
 	var w := get_viewport_rect().size.x
 	var h := get_viewport_rect().size.y
 
 	if _segurando:
-		_acumulado += delta * 3.0
+		_acumulado += delta * 4.0
 	while _acumulado >= 1.0:
 		_acumulado -= 1.0
-		var origem := varinha.position + Vector2(85, 0) if _segurando else Vector2(w / 2.0 + randf_range(-120, 120), h - 120)
-		_criar_bolha(origem)
+		_criar_bolha(varinha.position + Vector2(85, 0) if _segurando else _origem_sopro())
 
 	# quando ha muitas bolhas, todas ficam mais lentas (GDD 11.2)
 	var lento := clampf(1.0 - bolhas.size() / 28.0, 0.5, 1.0)
@@ -120,19 +135,38 @@ func _process(delta: float) -> void:
 		_convidou_inativo = false
 
 
+## Ponto de onde nascem as bolhas do sopro: espalhado na parte de baixo da tela.
+func _origem_sopro() -> Vector2:
+	var tela := get_viewport_rect().size
+	return Vector2(randf_range(120, tela.x - 120), tela.y - 140)
+
+
+## Rajada do sopro: bolhas espalhadas pela largura da tela, para a crianca escolher qual tocar.
+func _rajada_espalhada() -> void:
+	var tela := get_viewport_rect().size
+	for i in RAJADA:
+		var x := tela.x * (i + 0.5) / RAJADA + randf_range(-40, 40)
+		_criar_bolha(Vector2(x, tela.y - 140 - randf_range(0, 120)))
+
+
+func _rajada(origem: Vector2) -> void:
+	for i in RAJADA:
+		_criar_bolha(origem + Vector2(randf_range(-160, 160), randf_range(-40, 40)))
+
+
 func _criar_bolha(origem: Vector2) -> void:
 	if bolhas.size() >= MAX_BOLHAS:
 		return
 	var b := Bolha.new()
-	var d := randf_range(110, 180)
+	var d := randf_range(105, 165)
 	b.size = Vector2(d, d)
 	b.cor = Color(CORES_BOLHA.pick_random())
-	b.vel = randf_range(55, 95)
+	b.vel = randf_range(45, 80)  # sobem devagar, para dar tempo de tocar
 	b.fase = randf() * TAU
-	b.x_base = clampf(origem.x - d / 2.0 + randf_range(-60, 60), 10, get_viewport_rect().size.x - d - 10)
+	b.x_base = clampf(origem.x - d / 2.0 + randf_range(-30, 30), 10, get_viewport_rect().size.x - d - 10)
 	b.position = Vector2(b.x_base, origem.y - d / 2.0)
 	var itens := Perfil.itens_ativos()
-	if randf() < 0.7 and itens.size() > 0:
+	if randf() < CHANCE_IMAGEM and itens.size() > 0:
 		b.item = itens.pick_random()
 	b.tocada.connect(_ao_tocar_bolha)
 	area.add_child(b)
@@ -144,7 +178,9 @@ func _criar_bolha(origem: Vector2) -> void:
 
 func _ao_tocar_bolha(b: Bolha) -> void:
 	registrar_toque()
-	var revelar := not b.item.is_empty() and revelacao == null
+	# a crianca experimenta alguns estouros antes de aparecer uma imagem
+	var revelar := not b.item.is_empty() and revelacao == null and _pops_desde_revelar >= POPS_ANTES_DE_REVELAR
+	_pops_desde_revelar = 0 if revelar else _pops_desde_revelar + 1
 	_estourar(b, revelar)
 	if not revelar:
 		_pops_vazios += 1

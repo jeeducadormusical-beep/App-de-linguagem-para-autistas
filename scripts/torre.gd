@@ -3,13 +3,18 @@ extends "res://scripts/base_jogo.gd"
 ## A torre ja comeca montada. A crianca SOPRA no celular:
 ##   - sopro fraco  -> a torre so balanca
 ##   - sopro forte  -> a torre cai devagar e aparece uma imagem dos temas de interesse
+## NIVEIS: a torre comeca pequena (1 fileira) e cai com um sopro bem fraquinho. A cada
+## queda ela volta um pouco maior e pede um pouco mais de forca, ate o nivel 5.
 ## Alternativa por toque (GDD: obrigatoria): segurar o dedo na torre funciona como soprar.
 ## Toque curto balanca, segurar derruba. Nada e erro: cair ou nao cair, tudo e brincadeira.
 
-## Forca do sopro (0..1) necessaria para derrubar: fraco, medio, forte (ajuste do responsavel).
-const LIMIAR_QUEDA := [0.3, 0.55, 0.8]
+## Forca do sopro (0..1) para derrubar a torre MAIOR: fraco, medio, forte (ajuste do responsavel).
+const LIMIAR_QUEDA := [0.35, 0.6, 0.85]
+## Quanto dessa forca cada nivel pede: nivel 1 so 15% (sopro fraquinho), nivel 5 quase tudo.
+const FRACAO_NIVEL := [0.15, 0.3, 0.5, 0.7, 0.9]
+const NIVEL_MAX := 5
 ## Tempo seguido de sopro forte para derrubar (evita queda por um estalo de som).
-const TEMPO_FORTE := 0.35
+const TEMPO_FORTE := 0.3
 ## Tamanho da torre na tela.
 const ESCALA := 1.2
 
@@ -103,6 +108,7 @@ var _relogio := 0.0
 var _disse_bamba := false
 var _convidou_inativo := false
 var _primeira_vez := true
+var _subiu := false
 var _ultimo_item := ""
 
 
@@ -182,9 +188,11 @@ func _construir(inicio := false) -> void:
 	_forte_t = 0.0
 	_disse_bamba = false
 	torre.rotation = 0.0
+	# nivel 1 = 1 fileira de pedras; nivel 5 = 5 fileiras
+	var fileiras := nivel()
 	var defs := []
-	for i in 5:
-		defs.append({"tipo": "fileira", "tam": Vector2(230, 70), "janela": i == 3})
+	for i in fileiras:
+		defs.append({"tipo": "fileira", "tam": Vector2(230, 70), "janela": i == mini(1, fileiras - 1) and fileiras > 1})
 	defs.append({"tipo": "ameias", "tam": Vector2(262, 62), "janela": false})
 	defs.append({"tipo": "telhado", "tam": Vector2(290, 190), "janela": false})
 	var y := 0.0
@@ -212,8 +220,27 @@ func _construir(inicio := false) -> void:
 		if inicio or _primeira_vez:
 			_primeira_vez = false
 			Fala.ciclo("torre", "inicio" if Perfil.nome() != "" else "inicio_sem_nome")
+		elif _subiu:
+			Fala.ciclo("torre", "subiu")
 		else:
 			Fala.ciclo("torre", "de_novo"))
+
+
+## Se o responsavel mudou o tamanho da torre nos ajustes, remonta no novo tamanho.
+func _ao_fechar_ajustes() -> void:
+	if estado == EM_PE and pecas.size() != nivel() + 2:
+		_subiu = false
+		_construir()
+
+
+func nivel() -> int:
+	return clampi(int(Perfil.config.nivel_torre), 1, NIVEL_MAX)
+
+
+## Forca (0..1) que o sopro precisa ter para derrubar a torre neste nivel.
+func limiar_queda() -> float:
+	var base: float = LIMIAR_QUEDA[clampi(int(Perfil.config.forca_derrubar), 0, 2)]
+	return base * FRACAO_NIVEL[nivel() - 1]
 
 
 # ------------------------------------------------------------ sopro, toque e balanco
@@ -232,6 +259,8 @@ func _input(e: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if ajustes_abertos:
+		return
 	_relogio += delta
 	if _relogio - _sopro_ultimo > 0.12:
 		_sopro = 0.0
@@ -259,7 +288,8 @@ func _process(delta: float) -> void:
 func _balancar(delta: float, vento: float) -> void:
 	var reduzido: bool = Perfil.config.movimento_reduzido
 	var forca := 7.0 * (0.6 if reduzido else 1.0)
-	var acel := -20.0 * _ang - 3.2 * _vel + forca * vento
+	# raiz: ate um sopro bem fraquinho faz a torre balancar de um jeito visivel
+	var acel := -20.0 * _ang - 3.2 * _vel + forca * sqrt(vento)
 	_vel += acel * delta
 	_ang = clampf(_ang + _vel * delta, -0.4, 0.4)
 	torre.rotation = _ang
@@ -273,8 +303,7 @@ func _balancar(delta: float, vento: float) -> void:
 		_disse_bamba = true
 		Fala.dizer("torre", "bamba")
 
-	var limiar: float = LIMIAR_QUEDA[clampi(int(Perfil.config.forca_derrubar), 0, 2)]
-	if Perfil.config.torre_cai and vento >= limiar:
+	if Perfil.config.torre_cai and vento > 0.0 and vento >= limiar_queda():
 		_forte_t += delta
 		if _forte_t >= TEMPO_FORTE:
 			_derrubar()
@@ -332,6 +361,11 @@ func _revelar() -> void:
 
 
 func _reconstruir() -> void:
+	# depois de cada queda, a torre volta um nivel maior (ate o nivel 5)
+	_subiu = false
+	if estado == CAINDO and Perfil.config.torre_sobe_nivel and nivel() < NIVEL_MAX:
+		Perfil.definir("nivel_torre", nivel() + 1)
+		_subiu = true
 	esconder_revelacao(revelacao)
 	revelacao = null
 	var t := create_tween().set_parallel()

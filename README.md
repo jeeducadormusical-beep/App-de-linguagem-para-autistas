@@ -32,7 +32,18 @@ microfone (para o sopro) e com a de vibração. Você só precisa configurar sua
 | Bolhas de Sabão (`bolhas`) | Criança | Soprar no microfone **ou** segurar a varinha ✨; tocar na bolha revela uma imagem |
 | Área dos responsáveis (`responsaveis`) | Responsável | Perfil, fala, conforto sensorial, jogos, microfone com teste ao vivo, diário e privacidade |
 
-- **Portão dos responsáveis:** segure o cadeado 🔒 no canto do hub por **3 segundos**.
+- **Portão dos responsáveis:** segure o cadeado 🔒 por **3 segundos**.
+  - No **hub**, abre a área dos responsáveis completa.
+  - **Dentro dos jogos**, abre os **ajustes rápidos**: tipo de fala (só a palavra, com artigo ou frase
+    curta), sensibilidade do microfone com medidor ao vivo e, na torre, o tamanho atual e a força
+    para derrubar. O jogo fica parado enquanto o painel está aberto.
+- **Refazer configuração inicial:** na área dos responsáveis (apelido, temas, sopro ou toque).
+- **Torre em níveis:** começa com 1 fileira e cai com um sopro bem fraquinho; a cada queda volta
+  um nível maior (até 5) e pede mais força. Dá para escolher o nível ou travar o crescimento.
+- **Microfone para quem ainda não sabe soprar:** mede o barulho do ambiente, conta como sopro
+  qualquer som um pouco acima dele e calcula a força em decibéis. Sensibilidade de 1 a 10.
+- **Bolhas:** cada sopro solta logo uma rajada de 4 bolhas espalhadas; soprando mais forte saem mais.
+  A imagem só aparece depois de a criança estourar algumas bolhas vazias.
 - **Botão 👍 discreto nos jogos:** o responsável marca "ele respondeu" (gesto, olhar). Isso vai
   para o diário e **não muda** a reação do jogo.
 - **Fim suave:** depois de alguns minutos (3, 6 ou 10, a configurar), o personagem convida

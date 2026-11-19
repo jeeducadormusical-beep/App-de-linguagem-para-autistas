@@ -9,12 +9,16 @@ extends Control
 
 const PersonagemScript := preload("res://scripts/personagem.gd")
 const BalaoScript := preload("res://scripts/balao.gd")
+const PortaoScript := preload("res://scripts/portao.gd")
+const AjustesScript := preload("res://scripts/ajustes_rapidos.gd")
 
 var id_jogo := ""
 var area: Control
 var personagem: Control
 var balao: PanelContainer
 var tempo_sem_toque := 0.0
+## true enquanto o painel de ajustes rapidos estiver aberto (o jogo fica parado).
+var ajustes_abertos := false
 
 var _tempo_sessao := 0.0
 var _convite_aberto := false
@@ -45,14 +49,25 @@ func _ready() -> void:
 	respondeu.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	respondeu.offset_left = -104
 	respondeu.offset_right = -24
-	respondeu.offset_top = 48
-	respondeu.offset_bottom = 128
+	respondeu.offset_top = 148
+	respondeu.offset_bottom = 228
 	respondeu.tooltip_text = "Ele respondeu (registro do responsável)"
 	respondeu.pressed.connect(func():
 		Fala.ele_respondeu()
 		respondeu.modulate.a = 0.9
 		create_tween().tween_property(respondeu, "modulate:a", 0.45, 0.8))
 	add_child(respondeu)
+
+	# cadeado do responsavel: segurar 3 s abre os ajustes rapidos sem sair do jogo
+	var portao := Control.new()
+	portao.set_script(PortaoScript)
+	portao.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	portao.offset_left = -108
+	portao.offset_right = -20
+	portao.offset_top = 44
+	portao.offset_bottom = 132
+	portao.aberto.connect(_abrir_ajustes)
+	add_child(portao)
 
 	balao = PanelContainer.new()
 	balao.set_script(BalaoScript)
@@ -96,6 +111,8 @@ func _notification(what: int) -> void:
 
 
 func _process(delta: float) -> void:
+	if ajustes_abertos:
+		return
 	_tempo_sessao += delta
 	tempo_sem_toque += delta
 	if not _convite_aberto and _tempo_sessao > float(Perfil.config.minutos_sessao) * 60.0 and not Fala.ocupado():
@@ -167,6 +184,27 @@ func mostrar_guia_microfone() -> void:
 func registrar_toque() -> void:
 	tempo_sem_toque = 0.0
 	Fala.resposta("respostas_toque")  # tocar no jogo durante a pausa tambem e resposta
+
+
+# ------------------------------------------------------------ ajustes rapidos
+
+func _abrir_ajustes() -> void:
+	if ajustes_abertos:
+		return
+	ajustes_abertos = true
+	Fala.parar()
+	var painel := Control.new()
+	painel.set_script(AjustesScript)
+	painel.id_jogo = id_jogo
+	painel.fechado.connect(func():
+		ajustes_abertos = false
+		_ao_fechar_ajustes())
+	add_child(painel)
+
+
+## Os jogos podem reagir quando os ajustes mudam (ex.: a torre muda de tamanho).
+func _ao_fechar_ajustes() -> void:
+	pass
 
 
 # ------------------------------------------------------------ fim suave (GDD 5.1)

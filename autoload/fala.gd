@@ -141,8 +141,10 @@ func _modelo() -> void:
 
 func _celebrar() -> void:
 	som("celebrar")
-	_falar(frase("geral", "celebrar"), "geral_celebrar")
-	_mudar(CELEBRANDO, frase("geral", "celebrar"))
+	# sorteia a frase UMA vez, para o texto e a voz serem iguais
+	var texto := frase("geral", "celebrar")
+	_falar(texto, "geral_celebrar")
+	_mudar(CELEBRANDO, texto)
 
 
 func _mudar(novo: int, texto := "", item := {}) -> void:

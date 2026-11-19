@@ -17,8 +17,10 @@ func _ready() -> void:
 	var titulo := UI.rotulo("Área dos responsáveis", 34, UI.CORES.texto, HORIZONTAL_ALIGNMENT_LEFT)
 	titulo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	topo.add_child(titulo)
+	# se veio de dentro de um jogo, volta para o mesmo jogo
+	var destino: String = Jogo.parametros.get("voltar_para", "hub")
 	var voltar := UI.botao("▶ Jogar", UI.CORES.menta, 28, 88, UI.CORES.texto)
-	voltar.pressed.connect(func(): Jogo.ir_para("hub"))
+	voltar.pressed.connect(func(): Jogo.ir_para(destino))
 	topo.add_child(voltar)
 
 	var rolagem := ScrollContainer.new()
@@ -36,6 +38,7 @@ func _ready() -> void:
 	_secao_jogos(c)
 	_secao_microfone(c)
 	_secao_diario(c)
+	_secao_inicio(c)
 	_secao_privacidade(c)
 
 	c.add_child(UI.espacador(20))
@@ -143,8 +146,11 @@ func _secao_jogos(c: VBoxContainer) -> void:
 	v.add_child(UI.seletor(["3 min", "6 min", "10 min"], maxi(0, minutos.find(int(Perfil.config.minutos_sessao))), func(i): Perfil.definir("minutos_sessao", minutos[i])))
 	v.add_child(UI.titulo_secao("🏰 Torre do Castelo"))
 	_toggle(v, "A torre pode cair (se desligado, ela só balança)", "torre_cai")
-	v.add_child(_rot("Força do sopro para derrubar a torre"))
-	v.add_child(UI.seletor(["Fraco", "Médio", "Forte"], Perfil.config.forca_derrubar, func(i): Perfil.definir("forca_derrubar", i)))
+	v.add_child(_rot("Tamanho da torre agora (1 = pequena, cai com sopro fraquinho)"))
+	v.add_child(UI.seletor(["1", "2", "3", "4", "5"], int(Perfil.config.nivel_torre) - 1, func(i): Perfil.definir("nivel_torre", i + 1)))
+	_toggle(v, "A torre cresce um nível a cada queda (pede mais força)", "torre_sobe_nivel")
+	v.add_child(_rot("Força do sopro para derrubar a torre maior"))
+	v.add_child(UI.seletor(["Fraca", "Média", "Forte"], Perfil.config.forca_derrubar, func(i): Perfil.definir("forca_derrubar", i)))
 	v.add_child(_nota("Sem microfone, a criança segura o dedo na torre: toque curto balança, segurar derruba."))
 
 
@@ -161,14 +167,10 @@ func _secao_microfone(c: VBoxContainer) -> void:
 	_status_mic = _nota("")
 	v.add_child(_status_mic)
 	v.add_child(_rot("Sensibilidade do sopro"))
-	v.add_child(UI.seletor(["Baixa", "Média", "Alta"], Perfil.config.sensibilidade, func(i): Perfil.definir("sensibilidade", i)))
+	v.add_child(_nota("Mais para a direita = um sopro mais fraquinho já funciona. Bom para crianças que ainda não sabem soprar."))
+	v.add_child(UI.controle_sensibilidade())
 	v.add_child(_rot("Teste: sopre agora"))
-	_medidor = ProgressBar.new()
-	_medidor.max_value = 1.0
-	_medidor.show_percentage = false
-	_medidor.custom_minimum_size.y = 36
-	_medidor.add_theme_stylebox_override("background", UI.caixa(UI.CORES.borda, 18, 0))
-	_medidor.add_theme_stylebox_override("fill", UI.caixa(UI.CORES.menta, 18, 0))
+	_medidor = UI.medidor_sopro()
 	v.add_child(_medidor)
 	_sopro_ok = _rot("")
 	v.add_child(_sopro_ok)
@@ -214,6 +216,14 @@ func _secao_diario(c: VBoxContainer) -> void:
 	v.add_child(copiar)
 
 
+func _secao_inicio(c: VBoxContainer) -> void:
+	var v := _cartao(c, "🔁 Configuração inicial")
+	v.add_child(_nota("Refaz os passos do começo: apelido, temas e sopro ou toque. O diário e os outros ajustes continuam."))
+	var refazer := UI.botao("Refazer configuração inicial", UI.CORES.superficie, 24, 80, UI.CORES.texto)
+	refazer.pressed.connect(func(): Jogo.ir_para("inicio", {"refazer": true}))
+	v.add_child(refazer)
+
+
 func _secao_privacidade(c: VBoxContainer) -> void:
 	var v := _cartao(c, "🔒 Privacidade")
 	v.add_child(_nota("Tudo fica guardado só neste aparelho, na área privada do app. Sem conta, sem nuvem, sem anúncios. Nada é enviado para fora sem você copiar e enviar."))
@@ -244,14 +254,7 @@ func _process(_d: float) -> void:
 		_status_mic.text = "Aguardando permissão do microfone. Sem ela, o jogo funciona por toque."
 	else:
 		_status_mic.text = "Ligado."
-	var lim := Microfone.limiar()
-	_medidor.value = clampf(Microfone.nivel / (lim * 2.0), 0.0, 1.0)
-	if Microfone.forca_sopro() > 0.0:
-		_sopro_ok.text = "🫧 Sopro detectado!"
-	elif Microfone.voz_agora():
-		_sopro_ok.text = "🗣️ Voz detectada"
-	else:
-		_sopro_ok.text = ""
+	UI.atualizar_medidor(_medidor, _sopro_ok)
 	_ruido.text = "Ambiente barulhento: se o sopro falhar, use o toque." if Microfone.ambiente_barulhento() else ""
 
 

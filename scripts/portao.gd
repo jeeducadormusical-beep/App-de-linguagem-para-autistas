@@ -22,7 +22,7 @@ func _ready() -> void:
 	l.add_theme_font_size_override("font_size", 34)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(l)
-	modulate.a = 0.55
+	modulate.a = 0.85
 
 
 func _gui_input(e: InputEvent) -> void:
