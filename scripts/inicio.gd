@@ -4,6 +4,8 @@ extends Control
 ##  3. medir o barulho do ambiente  4. ajustar a forca do sopro  5. entregar o celular
 ## Depois de configurado, o app abre direto no hub (ou no ultimo jogo, se o responsavel quiser).
 
+const AvisoMic := preload("res://scripts/aviso_microfone.gd")
+
 var _coluna: VBoxContainer
 var _passo := 0
 var _medidor: ProgressBar
@@ -96,7 +98,8 @@ func _passo_sopro() -> void:
 	sopro.pressed.connect(func():
 		Perfil.definir("microfone", true)
 		Microfone.pedir_permissao()
-		_mostrar_passo(3))  # medir o ambiente e ajustar o sopro
+		# primeiro explica qual microfone usar; depois mede o ambiente e ajusta o sopro
+		AvisoMic.abrir(self, func(): _mostrar_passo(3)))
 	_coluna.add_child(sopro)
 	var toque := UI.botao("👆 Só toque", UI.CORES.superficie, 30, 96, UI.CORES.texto)
 	toque.pressed.connect(func():

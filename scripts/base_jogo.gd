@@ -74,6 +74,13 @@ func _ready() -> void:
 
 	_montar(area)
 	Microfone.ligar()
+	# quem ja usava o app ve uma vez o aviso de qual microfone usar (o jogo fica parado)
+	if Perfil.config.microfone and not Perfil.config.aviso_mic_visto:
+		ajustes_abertos = true
+		var aviso := Control.new()
+		aviso.set_script(load("res://scripts/aviso_microfone.gd"))
+		aviso.fechado.connect(func(): ajustes_abertos = false)
+		add_child(aviso)
 
 
 func _montar(_area: Control) -> void:

@@ -4,6 +4,8 @@ extends Control
 
 signal fechado
 
+const AvisoMic := preload("res://scripts/aviso_microfone.gd")
+
 var id_jogo := ""
 var _medidor: ProgressBar
 var _estado_sopro: Label
@@ -61,6 +63,9 @@ func _ready() -> void:
 			queue_free())
 		v.add_child(ligar)
 	else:
+		var qual := UI.botao("🎧 Qual microfone usar?", UI.CORES.amarelo, 22, 72, UI.CORES.texto)
+		qual.pressed.connect(func(): AvisoMic.abrir(self))
+		v.add_child(qual)
 		v.add_child(UI.controle_sopro())
 		_medidor = UI.medidor_sopro()
 		v.add_child(_medidor)

@@ -2,6 +2,8 @@ extends Control
 ## Configuracoes do responsavel. Protegida pelo cadeado (segurar 3 s).
 ## Pensada para ser simples: so o essencial, com linguagem do dia a dia.
 
+const AvisoMic := preload("res://scripts/aviso_microfone.gd")
+
 var _medidor: ProgressBar
 var _estado_sopro: Label
 var _status_mic: Label
@@ -101,6 +103,9 @@ func _secao_sopro(c: VBoxContainer) -> void:
 	_caixa_sopro.add_theme_constant_override("separation", 14)
 	_caixa_sopro.visible = Perfil.config.microfone
 	v.add_child(_caixa_sopro)
+	var qual := UI.botao("🎧 Qual microfone usar?", UI.CORES.amarelo, 24, 80, UI.CORES.texto)
+	qual.pressed.connect(func(): AvisoMic.abrir(self))
+	_caixa_sopro.add_child(qual)
 	_caixa_sopro.add_child(_nota("Como é o sopro da criança? Comece no \"Fraco\" e vá para \"Forte\" conforme ela aprender."))
 	_caixa_sopro.add_child(UI.controle_sopro())
 	_medidor = UI.medidor_sopro()

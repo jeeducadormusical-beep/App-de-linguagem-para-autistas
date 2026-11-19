@@ -1,11 +1,13 @@
 extends "res://scripts/base_jogo.gd"
 ## Jogo 2: Bolhas de Sabao (GDD sec. 11).
-## Soprar no microfone (ou segurar a varinha) cria bolhas. Tocar numa bolha revela uma
+## Na tela aparece o brinquedo de fazer bolhas (aro com pelicula de sabao e cabo): a crianca
+## ve e ja entende que e para soprar. Ao soprar, a pelicula estufa e as bolhas saem do aro.
+## Tocar e segurar o aro tambem faz bolhas (alternativa por toque). Tocar numa bolha revela uma
 ## imagem dos temas e o personagem fala o nome. Nada e "errado": bolha que chega ao topo
 ## estoura sozinha, sem revelar nada.
 
 const MAX_BOLHAS := 18
-## Cada sopro (ou toque na varinha) solta logo uma rajada de bolhas para a crianca ter opcoes.
+## Cada sopro (ou toque no brinquedo) solta logo uma rajada de bolhas para a crianca ter opcoes.
 const RAJADA := 4
 ## Bolhas por segundo enquanto sopra: sopro fraquinho -> poucas, sopro forte -> muitas.
 const TAXA_FRACA := 1.5
@@ -23,6 +25,7 @@ class Bolha extends Control:
 	var vel := 80.0
 	var fase := 0.0
 	var x_base := 0.0
+	var vx := 0.0
 	var estourando := false
 
 	func _ready() -> void:
@@ -45,9 +48,64 @@ class Bolha extends Control:
 		draw_circle(c + Vector2(r * 0.42, -r * 0.42), r * 0.08, Color(1, 1, 1, 0.8))
 
 
+## Brinquedo de bolha de sabao desenhado por codigo (aro + pelicula + cabo).
+## Para usar arte propria, coloque assets/imagens/brinquedo_bolha.png (o aro no alto da imagem).
+class Brinquedo extends Control:
+	signal apertado
+	const COR_ARO := Color("F4A29B")
+	const COR_CABO := Color("B39DDB")
+	var raio := 86.0
+	var estufar := 0.0      # 0..1: a pelicula estufa enquanto a crianca sopra
+	var _t := 0.0
+	var _textura: Texture2D
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		var caminho := "res://assets/imagens/brinquedo_bolha.png"
+		if ResourceLoader.exists(caminho):
+			_textura = load(caminho)
+
+	## Centro do aro, em coordenadas da tela.
+	func centro_aro() -> Vector2:
+		return global_position + Vector2(size.x / 2.0, raio + 20)
+
+	func _gui_input(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed:
+			apertado.emit()
+			accept_event()
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var c := Vector2(size.x / 2.0, raio + 20)
+		if _textura:
+			draw_texture_rect(_textura, Rect2(Vector2.ZERO, size), false)
+			return
+		# cabo
+		var base := Vector2(size.x / 2.0 + 10, size.y - 10)
+		draw_line(c + Vector2(0, raio), base, COR_CABO.darkened(0.15), 30.0, true)
+		draw_line(c + Vector2(0, raio), base, COR_CABO, 22.0, true)
+		draw_circle(base, 15, COR_CABO)
+		# pelicula de sabao (brilho que muda devagar) e a bolha estufando
+		var brilho := Color.from_hsv(fmod(_t * 0.05, 1.0), 0.25, 1.0, 0.35)
+		draw_circle(c, raio - 6, brilho)
+		if estufar > 0.02:
+			var rb := raio * (0.6 + estufar * 0.6)
+			var cb := c + Vector2(0, -estufar * raio * 0.9)
+			draw_circle(cb, rb, Color(1, 1, 1, 0.18))
+			draw_arc(cb, rb, 0, TAU, 48, Color(0.75, 0.85, 1.0, 0.6), 3.0, true)
+		draw_arc(c, raio * 0.62, -2.6, -1.8, 12, Color(1, 1, 1, 0.8), 7.0, true)
+		# aro
+		draw_arc(c, raio, 0, TAU, 64, COR_ARO.darkened(0.15), 22.0, true)
+		draw_arc(c, raio, 0, TAU, 64, COR_ARO, 15.0, true)
+		draw_arc(c, raio + 2, -2.4, -1.4, 16, Color(1, 1, 1, 0.55), 4.0, true)
+
+
 var bolhas: Array = []
 var revelacao: Control = null
-var varinha: Button
+var brinquedo: Brinquedo
 var _segurando := false
 var _acumulado := 0.0
 var _ultimo_surgem := -100.0
@@ -67,16 +125,17 @@ func _montar(a: Control) -> void:
 	var w := get_viewport_rect().size.x
 	var h := get_viewport_rect().size.y
 
-	# varinha: alternativa por toque, sempre disponivel (GDD 11.2)
-	varinha = UI.botao("✨", UI.CORES.lilas, 72, 170, UI.CORES.texto)
-	varinha.position = Vector2(w - 194, h - 196)
-	varinha.size = Vector2(170, 170)
-	varinha.button_down.connect(func():
+	# brinquedo de bolha no centro, perto da parte de baixo (onde fica o microfone)
+	brinquedo = Brinquedo.new()
+	brinquedo.size = Vector2(240, 430)
+	brinquedo.position = Vector2(w / 2.0 - 120 + 40, h - 470)
+	brinquedo.pivot_offset = Vector2(120, 430)
+	brinquedo.rotation_degrees = 8
+	brinquedo.apertado.connect(func():
 		_segurando = true
 		registrar_toque()
-		_rajada(varinha.position + Vector2(85, 0)))
-	varinha.button_up.connect(func(): _segurando = false)
-	a.add_child(varinha)
+		_rajada())
+	a.add_child(brinquedo)
 
 	Microfone.sopro.connect(_ao_soprar)
 	if Microfone.ligar():
@@ -88,11 +147,16 @@ func _recomecar() -> void:
 	Fala.ciclo("bolhas", "convite")
 
 
+func _input(e: InputEvent) -> void:
+	if _segurando and e is InputEventMouseButton and not e.pressed:
+		_segurando = false
+
+
 func _ao_soprar(forca: float) -> void:
 	tempo_sem_toque = 0.0
 	# comecou a soprar agora: ja solta uma rajada de bolhas
 	if _relogio - _ultimo_sopro > 0.4:
-		_rajada_espalhada()
+		_rajada()
 	_ultimo_sopro = _relogio
 	# enquanto sopra: mais forca = mais bolhas por segundo (com limite na tela)
 	_acumulado += lerpf(TAXA_FRACA, TAXA_FORTE, forca) * get_process_delta_time()
@@ -110,7 +174,16 @@ func _process(delta: float) -> void:
 		_acumulado += delta * 4.0
 	while _acumulado >= 1.0:
 		_acumulado -= 1.0
-		_criar_bolha(varinha.position + Vector2(85, 0) if _segurando else _origem_sopro())
+		_criar_bolha()
+
+	# a pelicula estufa enquanto sopra e volta quando para; parado, o brinquedo "respira"
+	var soprando := _segurando or _relogio - _ultimo_sopro < 0.2
+	brinquedo.estufar = move_toward(brinquedo.estufar, 1.0 if soprando else 0.0, delta * 3.0)
+	if not soprando and not Perfil.config.movimento_reduzido:
+		var s := 1.0 + 0.03 * sin(_relogio * 2.0)
+		brinquedo.scale = Vector2(s, s)
+	else:
+		brinquedo.scale = Vector2.ONE
 
 	# quando ha muitas bolhas, todas ficam mais lentas (GDD 11.2)
 	var lento := clampf(1.0 - bolhas.size() / 28.0, 0.5, 1.0)
@@ -121,6 +194,9 @@ func _process(delta: float) -> void:
 			continue
 		b.fase += delta
 		b.position.y -= b.vel * lento * delta
+		# saem do aro com um empurraozinho para os lados e vao freando
+		b.x_base = clampf(b.x_base + b.vx * delta, 10, w - b.size.x - 10)
+		b.vx *= pow(0.4, delta)
 		b.position.x = b.x_base + sin(b.fase * 1.1) * 22.0
 		if b.position.y < 150:
 			_estourar(b, false)  # chegou ao topo: estoura sozinha, sem revelar
@@ -138,35 +214,27 @@ func _process(delta: float) -> void:
 		_convidou_inativo = false
 
 
-## Ponto de onde nascem as bolhas do sopro: espalhado na parte de baixo da tela.
-func _origem_sopro() -> Vector2:
-	var tela := get_viewport_rect().size
-	return Vector2(randf_range(120, tela.x - 120), tela.y - 140)
-
-
-## Rajada do sopro: bolhas espalhadas pela largura da tela, para a crianca escolher qual tocar.
-func _rajada_espalhada() -> void:
-	var tela := get_viewport_rect().size
+## Rajada: varias bolhas saem do aro de uma vez, para a crianca ter opcoes para tocar.
+func _rajada() -> void:
 	for i in RAJADA:
-		var x := tela.x * (i + 0.5) / RAJADA + randf_range(-40, 40)
-		_criar_bolha(Vector2(x, tela.y - 140 - randf_range(0, 120)))
+		_criar_bolha(lerpf(-1.0, 1.0, (i + 0.5) / RAJADA))
 
 
-func _rajada(origem: Vector2) -> void:
-	for i in RAJADA:
-		_criar_bolha(origem + Vector2(randf_range(-160, 160), randf_range(-40, 40)))
-
-
-func _criar_bolha(origem: Vector2) -> void:
+## Cria uma bolha saindo do aro. `lado` (-1..1) escolhe para onde ela vai (aleatorio se nada).
+func _criar_bolha(lado := 2.0) -> void:
 	if bolhas.size() >= MAX_BOLHAS:
 		return
+	if lado > 1.5:
+		lado = randf_range(-1.0, 1.0)
+	var origem := brinquedo.centro_aro() + Vector2(0, -40)
 	var b := Bolha.new()
 	var d := randf_range(105, 165)
 	b.size = Vector2(d, d)
 	b.cor = Color(CORES_BOLHA.pick_random())
 	b.vel = randf_range(45, 80)  # sobem devagar, para dar tempo de tocar
 	b.fase = randf() * TAU
-	b.x_base = clampf(origem.x - d / 2.0 + randf_range(-30, 30), 10, get_viewport_rect().size.x - d - 10)
+	b.x_base = clampf(origem.x - d / 2.0, 10, get_viewport_rect().size.x - d - 10)
+	b.vx = lado * randf_range(260, 420)
 	b.position = Vector2(b.x_base, origem.y - d / 2.0)
 	var itens := Perfil.itens_ativos()
 	if randf() < CHANCE_IMAGEM and itens.size() > 0:
@@ -174,8 +242,9 @@ func _criar_bolha(origem: Vector2) -> void:
 	b.tocada.connect(_ao_tocar_bolha)
 	area.add_child(b)
 	bolhas.append(b)
-	b.scale = Vector2(0.3, 0.3)
-	create_tween().tween_property(b, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_SINE)
+	# nasce pequena no aro e cresce enquanto se solta
+	b.scale = Vector2(0.25, 0.25)
+	create_tween().tween_property(b, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
 	Fala.som("bolha")
 
 

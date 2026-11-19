@@ -30,6 +30,7 @@ const PADRAO := {
 	"ultimo_jogo": "",
 	"minutos_sessao": 6,
 	"orientacao_sopro_dia": "",
+	"aviso_mic_visto": false,  # o aviso "qual microfone usar" ja foi mostrado
 }
 
 const PAUSA_SEGUNDOS := [2.5, 4.0, 6.0]

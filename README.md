@@ -45,8 +45,12 @@ microfone (para o sopro) e com a de vibração. Você só precisa configurar sua
   ganha uma fileira (só pela diversão), até o topo da tela (15 fileiras).
 - **Proteções contra sopro falso:** o microfone fica surdo enquanto o personagem fala; o som
   precisa durar um pouquinho para contar; o barulho do ambiente é reaprendido aos poucos.
-- **Bolhas:** cada sopro solta logo 4 bolhas espalhadas; soprando mais forte saem mais. A imagem
-  só aparece depois de a criança estourar algumas bolhas vazias.
+- **Bolhas:** na tela aparece o brinquedo de fazer bolhas (aro com película e cabo), para a
+  criança entender que é para soprar. Ao soprar, a película estufa e as bolhas saem do aro (4 de
+  uma vez; soprando mais forte saem mais). A imagem só aparece depois de alguns estouros vazios.
+- **Aviso "Qual microfone usar?":** recomenda fone de ouvido com microfone (com fio) ou microfone
+  de lapela, avisa que fone Bluetooth costuma não enviar o microfone para jogos. Aparece na
+  configuração inicial, nas configurações e no cadeado dentro do jogo.
 - **Fim suave:** depois de alguns minutos (3, 6 ou 10, a configurar), o personagem convida
   "De novo?" com dois botões grandes (🔁 continuar ou 🏠 casa). O jogo nunca fecha à força.
 - **Botão voltar do Android:** no jogo, volta ao hub. No hub, não faz nada (modo criança travado).
